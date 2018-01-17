@@ -1,0 +1,70 @@
+<?php
+#-----------------------------------------------------------------------------#
+# File: index.html
+# Author: Conrad Damon
+# Date: 02/15/2017
+#
+# User home page.
+#-----------------------------------------------------------------------------#
+
+require_once('db.php');
+require_once('log.php');
+require_once('util.php');
+require_once('overall.php');
+
+$test = get_input('test', 'get');
+
+$title = "Welcome to HARV 3000";
+$harv = getHarv();
+
+$sql = "SELECT * FROM tournament ORDER BY start DESC";
+$tournamentResults = db_query($sql);
+
+$tournamentHtml = '';
+$testTournamentHtml = '';
+foreach ($tournamentResults as $tournament) {
+   $html = "<li class='tournamentLink'><a href='tournament.html?id=" . $tournament['id'] . "'>" . getTournamentTitle($tournament) . "</a></li>";
+   if (!$tournament['test']) {
+      $tournamentHtml .= $html;
+   }
+   else {
+      $testTournamentHtml .= $html;
+   }
+}
+
+echo <<< EOF
+<!doctype html>
+<html>
+<head>
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/overall/common.css">
+<link rel="stylesheet" href="css/overall/index.css">
+<title>$title</title>
+</head>
+<body>
+  <div class="title">$title</div>
+$harv
+  <div class="pageLinks">
+    [ <span class="pageLink"><a href="admin/index.html">Admin Page</a></span> ]
+<!--    [ <span class="pageLink"><a href="index.html?test=1">Include Test</a></span> ] -->
+  </div>
+  <div class="header subtitle">Tournaments</div>
+  <ul>
+    $tournamentHtml
+  </ul>
+EOF;
+
+if ($test) {
+echo <<< EOF
+  <div class="header subtitle">Testing</div>
+  <ul>
+    $testTournamentHtml
+  </ul>
+EOF;
+}
+
+echo <<< EOF
+</body>
+</html>
+EOF;
+?>

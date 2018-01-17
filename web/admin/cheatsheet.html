@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/overall/common.css">
+  <link rel="stylesheet" href="/css/overall/cheatsheet.css">
+  <title>HARV 3000 Cheat Sheet</title>
+</head>
+<body>
+  <div class="title">HARV 3000 Cheat Sheet</div>
+
+<?php
+   require_once('overall.php');
+   echo getHarv();
+   echo getAdminLinks();
+?>
+
+<div class="task">I need to get set up to record scores</div>
+
+<ol>
+  <li>Go to the admin page for your tournament.</li>
+  <li>Right-click the link "Enter result" and open it in another tab or window.</li>
+</ol>
+
+<div class="task">I need to record scores for an individual event (golf, accuracy, distance, SCF, or discathon)</div>
+
+<ol>
+<li>Go to the results entry page.</li>
+<li>Click on the event to select it.</li>
+<li>Select the division.</li>
+<li>Select the round. You are now ready to enter scores.</li>
+<li>Start typing a name into the Player box. Use the arrow keys to select a name, or keep typing until there is only one. When the name you want is highlighted, hit the Tab or Enter key.</li>
+<li>Type a score. Hit Enter.</li>
+<li>Repeat steps 5 and 6 for each score.</li>
+</ol>
+
+<div class="task">I need to record scores for a team event (DDC or freestyle)</div>
+
+<ol>
+<li>A DDC or freestyle score is what place they got in whatever group or pool they played in.</li>
+<li>Go to the results entry page.</li>
+<li>Click on the event (DDC or freestyle) to select it.</li>
+<li>Select the division.</li>
+<li>Select the round. You are now ready to enter scores.</li>
+<li>Start typing a team into the Team box. Use the arrow keys to select a team, or keep typing until there is only one. When the team you want is highlighted, hit the Tab or Enter key.</li>
+<li>Type a place. Hit Enter.</li>
+<li>Repeat steps 6 and 7 for each place.</li>
+</ol>
+
+<div class="task">I made a mistake</div>
+
+<ol>
+<li>Double-click a player or team name to delete a result.</li>
+</ol>
+
+<div class="task">The player whose score I was trying to enter does not appear in the list that pops up</div>
+
+<ol>
+<li>You need to register them. Go to the tournament admin page.</li>
+<li>Select the division.</li>
+<li>Start typing a name into the Name box. Use the arrow keys to select a name, or keep typing until there is only one. When the name you want is highlighted, hit the Tab or Enter key. If there is no match, type the full name.</li>
+<li>Click the Add button.</li>
+<li>Go to the results entry page.</li>
+<li>Click "refresh" so that the page will know about the new player.</li>
+</ol>
+
+<div class="task">I need to match up a DDC or freestyle team</div>
+
+<ol>
+<li>Go to the teams page for the tournament.</li>
+<li>Click on the event (DDC or freestyle).</li>
+<li>Select the division.</li>
+<li>If you want to be able to team players from different divisions, click "show all players".</li>
+<li>Drag an unteamed player onto another unteamed player to form a team.</li>
+<li>To make a freestyle threesome, drag a player onto a team.</li>
+</ol>
+
+<div class="task">I'm confused and I need help</div>
+
+<ol>
+<li>Send someone to go find Conrad.</li>
+</ol>
+
+</body>
+</html>

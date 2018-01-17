@@ -1,0 +1,20 @@
+.acronym {
+  margin-bottom: 2rem;
+}
+
+.subheader, .subheader + .description {
+  margin-left: 2rem;
+}
+
+.description ul {
+    padding-left: 1.2rem;
+}
+
+.input {
+  font-weight: bold;
+}
+
+.tutorialPageLink {
+  color: #b21dd4;
+}
+

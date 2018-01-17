@@ -1,0 +1,47 @@
+#scoreEntryRow {
+  font-size: 1.3rem;
+}
+
+.resultsContainer {
+  margin-left: 1rem;
+}
+
+.roundSelect select {
+  margin: 0 0.31rem;
+}
+
+.eventLinks {
+  margin-left: 2rem;
+}
+
+#player, #team {
+  margin-right: 1.5rem;
+}
+
+#player {
+  width: 10rem;
+}
+
+.playerName {
+  width: 16rem;
+}
+
+#team {
+  width: 20rem;
+}
+
+.teamName {
+  width: 26rem;
+}
+
+#score {
+  width: 6rem;
+}
+
+#scoreHint {
+  padding-left: 3rem;
+}
+
+div.record {
+  width: 20rem;
+}

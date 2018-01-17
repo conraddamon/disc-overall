@@ -1,0 +1,73 @@
+<?php
+#-----------------------------------------------------------------------------#
+# File: tournament.html
+# Author: Conrad Damon
+# Date: 02/04/2017
+#
+# Display tournament info.
+#-----------------------------------------------------------------------------#
+
+header("Content-Type: text/html");
+header("X-Zimbra: hello");
+
+require_once('db.php');
+require_once('log.php');
+require_once('util.php');
+require_once('overall.php');
+
+# fetch tournament data
+$tournamentId = get_input('id', 'get');
+
+if (!$tournamentId) {
+   echo "Need to provide tournament ID.";
+   die();
+}
+
+$title = getTournamentTitle($tournamentId);
+$header = getTournamentHeader($tournamentId);
+
+$eventLinks = getLink('players') . getLink('overall') . getEventLinks($tournamentId) . getLink('export');
+
+echo <<< EOF
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width">
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/overall/common.css">
+<link rel="stylesheet" href="css/overall/tournament.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.3/jspdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/2.3.1/jspdf.plugin.autotable.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/overall/common.js"></script>
+<script src="js/overall/tournament.js"></script>
+<script>
+function launch() {
+  initializeTournament($tournamentId);
+}
+</script>
+<title>$title</title>
+</head>
+<body onload="launch();">
+  $header
+  <div id="notification"></div>
+  <div class="subtitle header" id="subtitle"></div>
+  <div class="pageLinks">$eventLinks</div>
+  <div class="chooser">
+    <div class="poolSelect" style="display:none">
+      <label for="pollSelect">Pool:</label>
+      <select name="poolSelect" id="poolSelect" tabindex=0 ></select>
+    </div>
+    <div class="divisionSelect">
+      <label for="divisionSelect">Division:</label>
+      <select name="divisionSelect" id="divisionSelect" tabindex=0 ></select>
+    </div>
+  </div>
+  <div id="content"></div>
+</body>
+</html>
+EOF;
+?>

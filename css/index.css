@@ -1,0 +1,11 @@
+.subtitle {
+  margin-bottom: 2rem;
+}
+
+li.tournamentLink {
+  margin: 1rem 0;
+}
+
+.form li.tournamentLink div {
+  padding: 1rem;
+}

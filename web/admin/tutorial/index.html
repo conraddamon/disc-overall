@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+<head>
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/overall/common.css">
+  <link rel="stylesheet" href="/css/overall/tutorial.css">
+  <title>HARV 3000 Tutorial</title>
+</head>
+<body>
+  <div class="title">HARV 3000 Tutorial</div>
+
+<?php
+   require_once('overall.php');
+   echo getHarv();
+   echo getAdminLinks("..");
+?>
+
+<div class="description">This tutorial will take you step-by-step through the process of managing the scoring for a small imaginary overall tournament. Fortunately for you, the players barely participated due to the "Shakespeare, Craft Beer, and Puppies" festival taking place nearby. (Overall players are an eclectic bunch.) The upshot is that you will have a manageable number of scores to enter. The steps you'll be following are grouped based on when they happen: Before, During, and After the tournament, because that's how time seems to go.</div>
+
+<div class="description">To complete this tutorial, you only need to do the things that are numbered. The rest of the words are just trying to help you do that. If you complete the tutorial successfully, you will get a virtual ribbon commemorating your achievement. Note: "virtual" means that you don't get a ribbon.</div>
+
+<div class="header">Before</div>
+
+<div class="description">You will have three main tasks before the tournament starts:
+  <ul>
+    <li>Set up the tournament</li>
+    <li>Provide the list of registered players</li>
+    <li>Assign players to teams in team events</li>
+  </ul>
+</div>
+
+<div class="subheader">Setup: Tournament Information</div>
+<ol>
+  <li>In a new window, open the <a href="http://conraddamon.com/overall/admin/tournament.html">tournament setup page</a>. (An easy way is to right-click the link. But you knew that.)</li>
+  <li>Give the tournament a name with the word "Test" in it (that way I'll know it's not a real tournament).</li>
+  <li>For the next five fields (Location through Email), put whatever you want. Your name and email are not currently used by HARV, but they're good to know just in case.</li>
+  <li>Enter a password that you can remember. Maybe even write it down. You won't be able to change it. Note that it's a password for the tournament rather than for a user.</li>
+  <li>The last two fields are optional. Fill them in if you like - the website will result in a link for your tournament name, and the note will be displayed below the name.</li>
+</ol>
+
+<div class="subheader">Setup: Events</div>
+<ol>
+  <li>Check the box for Self-Caught Flight. Note that MTA and TRC go away. Give it 3 rounds, and 2 cumulative.</li>
+  <li>Check the boxes for the other events, and give them the following rounds/cumulative: golf - 3/3; distance - 3/2; accuracy - 3/2; DDC - 4; freestyle - 3; discathon - 3. Leaving cumulative blank is the same as putting a 0 in it.</li>
+  <li>Set the minimum number of events for overall players to 3.</li>
+  <li>Allow freestyle teams to be either 2 or 3 players by checking both boxes.</li>
+</ol>
+
+<div class="subheader">Setup: Divisions</div>
+<ol>
+  <li>Check all the boxes. These are the divisions that will be recognized when you enter or import players.</li>
+  <li>We're going to get fancy here. Not a whole lot of women and juniors have entered, so we're going to have them play fewer rounds in some events. Women will run discathon twice, and juniors once. In the box for discathon rounds, replace the <span class="input">3</span> with <span class="input">3,W:2,OJ:1,WJ:1</span>. The <a href="../guide.html#roundCodes">Admin Guide</a> explains how those codes work.</li>
+</ol>
+
+<div class="subheader">Setup: Scoring</div>
+<ol>
+  <li>Select the <span class="input">Count down</span> scoring method. Pretty much every overall tournament ever has used it.</li>
+  <li>Time to get fancy again. Since there are fewer women and juniors, we'll set their maximum points at 20 instead of 50. Enter <span class="input">50,W:20,OJ:20,WJ:20</span> in the box.</li>
+  <li>Select the first choice under <span class="input">Team Events</span> (it should already be selected).</li>
+  <li>Click <span class="input">Add Tournament</span>.</li>
+</ol>
+<div class="description">Congrats! You're done with the first part. You should now see a much briefer form, which conveniently leads us right into our next task: entering the names and divisions of registered players. You should also see your tournament header at the top. The name is a link to the tournament website if you provided one. Look up at the URL in the Location box above. At the end of the URL you'll see a number. That's your tournament ID. It will appear at the end of all the URLs for the tournament. You will probably want to bookmark this page, as it's the gateway to anything you as TD will want to do within the HARV 3000.</div>
+
+<div class="description">If you need to change anything about how the tournament is configured, click <span class="tutorialPageLink">Edit tournament</span>. You'll see the same big form from earlier, filled in with your current settings. The button at the bottom will say <span class="input">Update tournament</span> rather than <span class="input">Add tournament</span>.</div>
+
+<div class="subheader">Players: Import (optional)</div>
+<div class="description">If you do not plan to import registered players from a spreadsheet, you can skip these steps.</div>
+<ol>
+  <li>Download this sample spreadsheet file of <a href="RegisteredPlayers.xlsx">registered players</a>. If you don't have Excel, you can practice with the <a href="RegisteredPlayers.csv">CSV version</a>. Use right-click and <span class="input">Save Link As ...</span> so that your browser doesn't just open it.</li>
+  <li>On your tournament setup page, click the <span class="tutorialPageLink">Import</span> link over to the right in the <span class="input">Register Players</span>.</li>
+  <li>Follow the instructions on the Import page. Hints: The first four lines of the CSV file can be removed. First names are in column 2, last names are in column 3, and divisions are in column 5. You should see 61 or so players get added.</li>
+  <li>After the import, you'll be taken back to your tournament administration page. If you want to see the players that were added, click on <span class="tutorialPageLink">Tournament page</span>. That's the public page where players will go to check results and standings. Then return to your administration page so you can add a few players.</li>
+</ol>
+
+<div class="subheader">Players: Add/Remove</div>
+<ol>
+  <li>Add Blair Paulsen. Type <span class="input">bl</span> in the <span class="input">Name</span> box and hit return when his name pops up and is selected. Put him in the <span class="input">Open Grand Master</span> division.</li>
+  <li>Add John Kirkland as an Open Legend player.</li>
+  <li>Remove Kellen Martin. Click the <span class="tutorialPageLink">Remove player</span> link, start typing his name, select it and hit return, then click the <span class="input">Remove</span> button.</li>
+  <li>Click the <span class="tutorialPageLink">Tournament page</span> link. You should have 54 registered Open players, and 9 Women. Set the division to <span class="input">Open Senior Grand Master</span>. There should be 18 players.</li>
+</ol>
+
+<div class="subheader">Assign Teams: DDC</div>
+<ol>
+  <li>Teams are created by dragging one player onto another. Drag Larry Imperiale and drop him on Bill Wright. You should see their team form below.</li>
+  <li>Create seven more Open teams: LeBeau/Paulsen, Horn/Zimmerman, Cooksey/Koonts, Elsner/Elsner, Coddington/Vingerelli, Walbridge/Bengtsson, and McRann/Kirkland.</li>
+  <li>Change the division to Women.</li>
+  <li>Create four teams: Berman/Verish, Horn/Ugalde, Elsner/Korver, and Ahler/Daniels.</li>
+</ol>
+
+<div class="subheader">Assign Teams: Freestyle</div>
+<ol>
+  <li>Click on the <span class="tutorialPageLink">Freestyle</span> link. The division will remain set to Women.</li>
+  <li>Create four teams: Berman/Horn, Verish/Ugalde, Elsner/Ahler, and Korver/Daniels.</li>
+  <li>Oops, Elsner goes with Geare. Double-click the Elsner/Ahler team to break it up.</li>
+  <li>Match Elsner with Geare.</li>
+  <li>Change the division to Open.</li>
+  <li>Create eight teams: Baranyk/Kostel, Kenny/Schiller, Herrick/Herrick, Cooksey/Titcomb, Weaver/Emerson, Bengtsson/Horn, Zimmerman/Kirkland, and Hudoklin/Imperiale.</li>
+  <li>You can create a three-person team (this tournament allows that) by dragging a player onto a two-person team. Add Bill Wright to the Imperiale/Hudoklin team. Add Rick Williams to Cooksey/Titcomb.</li>
+</ol>
+
+<div class="header">During</div>
+<div class="description">Go to your tournament page. Near the top you'll see a list of ten links, each of which will show you something different down below. The only one that will show anything right now is <span class="tutorialPageLink">Players</span>, as the rest of them depend on results. It's time to take care of that now.</div>
+<ol>
+  <li>Go to your tournament administration page and click <span class="tutorialPageLink">Enter results</span>. You'll see a list of events to choose from, and dropdowns where you can select the division and round. Note that HARV 3000 knows how many rounds each event has, even if they vary by division. Select <span class="tutorialPageLink">Discathon</span> and you'll see three rounds for Open players. Switch the division to Women and it goes down to two rounds, which is how you set it up earlier. The only divisions available when entering results are Open and Women, so that you don't waste a bunch of time switching among all the age-restricted divisions.</li>
+  <li>Enter a score. Start with Golf. Focus should already be on the Player box. Type <span class="input">vin</span>. Ronnie Vingerelli will come up as the only match. Hit Return, then type a score of 54 and hit Return again. You've now recorded a score with just seven keystrokes. The score will appear below and focus will go back to the Player box, ready for you to enter the next result. Try typing <span class="input">vin</span> again. Ronnie doesn't come up. That's because you've already entered his score.</li>
+<li>Enter some more scores. You may want to pick sets of around ten Open players and four Women's players to focus on, in order to make the competition for Overall meaningful. You may want to open the tournament page in a separate window so that the names are handy. Now you can practice getting fast at entering scores. If a list of multiple matches pops up, you can either navigate the list with the up and down arrow keys, or type another letter or two until there's only one match. Hit Return when the name you want is highlighted. After awhile, you'll become familiar with the shortest set of letters needed to pull up a particular player (for example, <span class="input">bl</span> will pull up Blair Paulsen).</li>
+<li>Switch the division to Women. Enter some golf scores.</li>
+<li>Enter scores for distance, accuracy, MTA, TRC, and discathon. Discathon scores are entered as expected, for example <span class="input">6:27</span>.</li>
+<li>Enter scores for DDC and freestyle. The score for a team event is the placement in the round. Do not enter DDC game scores, or freestyle points. For example, the first round (prelims) of the DDC tournament will have several pools. Each pool will have a team that gets a score of 1 (the winners of the pool), a team that gets a score of 2, and so on. The same goes for freestyle. After the DDC finals, one team gets a score of 1 and the other gets a score of 2.</li>
+<li>Make sure to enter scores for subsequent rounds, and for Women. This may seem tedious for now, but just think how nice it will be during an actual tournament to have this mastered. You can also go over to the tourament page and see all the lovely results you've entered. If you've entered enough scores in enough events, you should see some overall standings. If you like, enter some more scores and watch the overall standings change.</li>
+</ol>
+
+<div class="header">After</div>
+<ol>
+  <li>Kick up your feet and have one of your minions (aka staff) bring you a glass of beer or wine. Bask in the glow of a well-run tournament.</li>
+  <li>Go to the tournament page. Click <span class="tutorialPageLink">Overall</span>.</li>
+  <li>Click <span class="tutorialPageLink">Export</span> on the far right.</li>
+  <li>A PDF version of the overall results will be downloaded to your browser. You can now send that to the players. You can get a PDF version of the results for any event and division by clicking on <span class="input">Export</span>. Whatever you're currently looking at will get turned into a PDF file.</li>
+</ol>
+
+</body>
+</html>

@@ -1,0 +1,89 @@
+<?php
+#-----------------------------------------------------------------------------#
+# File: teams.html
+# Author: Conrad Damon
+# Date: 02/06/2017
+#
+# Create teams for team events.
+#-----------------------------------------------------------------------------#
+
+require_once('db.php');
+require_once('log.php');
+require_once('util.php');
+require_once('overall.php');
+
+# fetch tournament data
+$tournamentId = get_input('id', 'get');
+
+if (!$tournamentId) {
+   echo "Need to provide tournament ID.";
+   die();
+}
+
+include 'overall_auth.php';
+
+$sql = "SELECT * FROM tournament WHERE id=$tournamentId";
+$tournamentResult = db_query($sql, 'one');
+$header = getTournamentHeader($tournamentResult);
+
+$freestyleTeamSize = quote($tournamentResult['freestyle_team']);
+
+$sql = "SELECT id,name FROM event WHERE tournament_id=$tournamentId AND active=true AND (name='ddc' OR name='freestyle')";
+$eventResult = db_query($sql);
+$ddcEventId = $freestyleEventId = 'undefined';
+if ($eventResult) {
+   $eventLinks = getEventLinks($eventResult);
+   foreach ($eventResult as $event) {
+      ${$event['name'] . 'EventId'} = $event['id'];
+   }
+}
+else {
+   $eventLinks = "This tournament has no team events.";
+}
+
+echo <<< EOF
+<!doctype html>
+<html>
+<head>
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<link rel="stylesheet" href="/css/common.css">
+<link rel="stylesheet" href="/css/overall/common.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/overall/common.js"></script>
+<script src="/js/overall/teams.js"></script>
+<script>
+function launch() {
+    initializeTeams($tournamentId, $ddcEventId, $freestyleEventId, $freestyleTeamSize);
+}
+</script>
+<title class="title">Assign Teams</title>
+</head>
+<body onload="launch()">
+  $header
+  <div id="notification"></div>
+  <div class="subtitle header" id="subtitle">$task</div>
+  <div id="content">
+    <div class="pageLinks">$eventLinks</div>
+    <div class="chooser">
+      <div class="divisionSelect">
+	<label for="divisionSelect">Division:</label>
+	<select name="divisionSelect" id="divisionSelect" tabindex=0 ></select>
+	<div style="display:none;" id="showAllContainer"><input type="checkbox" id="showAll" name="showAll" tabindex=0 /><label for="showAll" id="showAllLabel">show all players</label></div>
+	<div>[ <span class='pageLink' id='refresh'>refresh</span> ]</div>
+      </div>
+    </div>
+    <div>Drag a player onto another player to create a team. <span id='threePlayerTeamText' style='display:none;'>Drag a player onto a team to create a three-person team. </span>If you make a mistake, you can double-click a team to undo it. Players and teams are sorted by last name. If players from Open and Women are allowed to form teams, check <strong>show all players</strong>.</div>
+    
+    <div id='playersAndTeamsContainer'>
+      <div class="header">Unteamed Players</div>
+      <div id="playerContainer"></div>
+      <div id="teamHeader" class="header">Teams</div>
+      <div id="teamContainer"></div>
+    </div>
+  </div>
+</body>
+</html>
+EOF;
+?>

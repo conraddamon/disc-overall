@@ -1,0 +1,64 @@
+<?php
+#-----------------------------------------------------------------------------#
+# File: records.html
+# Author: Conrad Damon
+# Date: 03/02/2017
+#
+# Get various records from wfdf.org.
+#-----------------------------------------------------------------------------#
+
+require_once('db.php');
+require_once('log.php');
+require_once('util.php');
+require_once('overall.php');
+
+#include 'overall_auth.php';
+
+$sources = array('distance' => 'http://wfdf.org/index.php?option=com_content&view=article&id=386&Itemid=130&r_sec=1',
+                 'mta'      => 'http://wfdf.org/index.php?option=com_content&view=article&id=386&Itemid=130&r_sec=2',
+                 'trc'      => 'http://wfdf.org/index.php?option=com_content&view=article&id=386&Itemid=130&r_sec=3',
+                 'scf'      => 'http://wfdf.org/index.php?option=com_content&view=article&id=386&Itemid=130&r_sec=4',
+                 'accuracy' => 'http://wfdf.org/index.php?option=com_content&view=article&id=386&Itemid=130&r_sec=5');
+
+$content = array();
+foreach ($sources as $event => $source) {
+   $html = file_get_contents($source);
+   $html = clip($html, '<head>', '</head>');
+   $html = clip($html, '<table id="rahmen"', '<h2>Out', false);
+   $html = clip($html, '<h2>', '</body>', false, 200);
+   $content[$event] = $html;
+}
+$recordHtml = json_encode($content);
+
+echo <<< EOF
+<!doctype html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/overall/common.css">
+  <link rel="stylesheet" href="/css/overall/import.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/overall/common.js"></script>
+  <script src="/js/overall/records.js"></script>
+  <script>
+function launch() {
+  parseRecordHtml($recordHtml);
+}
+  </script>
+  <title>Find world records</title>
+</head>
+<body onload="launch();">
+  <div class="subtitle header">Find world records</div>
+  <div class="description">Content from the WFDF world record pages at wfdf.org is parsed to find the current world records in five events (distance, MTA, TRC, SCF, and accuracy).</div>
+  <div class="description">The following records were added or updated:</div>
+  <table id='recordTable'>
+    <tr><th>Event</th><th>Division</th><th>Name</th><th>Score</th></tr>
+  </table>
+  <div id='work' style='display:none'></div>
+</body>
+</html>
+EOF;
+?>

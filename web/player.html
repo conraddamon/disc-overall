@@ -1,0 +1,63 @@
+<?php
+#-----------------------------------------------------------------------------#
+# File: tournament.html
+# Author: Conrad Damon
+# Date: 02/04/2017
+#
+# Display tournament info.
+#-----------------------------------------------------------------------------#
+
+require_once('db.php');
+require_once('log.php');
+require_once('util.php');
+require_once('overall.php');
+
+# fetch tournament data
+$playerId = get_input('id', 'get');
+
+if (!$playerId) {
+   echo "Need to provide player ID.";
+   die();
+}
+
+$sql = "SELECT tournament_id FROM player WHERE id=$playerId";
+$result = db_query($sql, 'one');
+if (!$result) {
+   echo "Bad player ID.";
+   die();
+}
+
+$tournamentId = $result['tournament_id'];
+$header = getTournamentHeader($tournamentId);
+
+echo <<< EOF
+<!doctype html>
+<html>
+<head>
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<link rel="stylesheet" href="/css/common.css">
+<link rel="stylesheet" href="/css/overall/common.css">
+<link rel="stylesheet" href="/css/overall/tournament.css">
+<link rel="stylesheet" href="/css/overall/player.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/overall/common.js"></script>
+<script src="/js/overall/tournament.js"></script>
+<script>
+function launch() {
+  initializePlayer($playerId, $tournamentId);
+}
+</script>
+<title>Player Results</title>
+</head>
+<body onload="launch();">
+  $header
+  <div class="subtitle header" id="subtitle"></div>
+  <div class="playerPage">
+    <div id="content"></div>
+  </div>
+</body>
+</html>
+EOF;
+?>

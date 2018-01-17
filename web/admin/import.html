@@ -1,0 +1,97 @@
+<?php
+#-----------------------------------------------------------------------------#
+# File: import.html
+# Author: Conrad Damon
+# Date: 02/16/2017
+#
+# Import players from a spreadsheet.
+#-----------------------------------------------------------------------------#
+
+require_once('db.php');
+require_once('log.php');
+require_once('util.php');
+require_once('overall.php');
+
+$tournamentId = get_input('id', 'get');
+
+if (!$tournamentId) {
+   echo "Need to provide tournament ID.";
+   die();
+}
+
+include 'overall_auth.php';
+
+$header = getTournamentHeader($tournamentId);
+
+echo <<< EOF
+<!doctype html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/overall/common.css">
+  <link rel="stylesheet" href="/css/overall/import.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/overall/common.js"></script>
+  <script src="/js/overall/import.js"></script>
+  <script>
+function launch() {
+    initializeImport($tournamentId);
+}
+  </script>
+  <title>Import players from a spreadsheet</title>
+</head>
+<body onload="launch();">
+  $header
+  <div class="subtitle header">Import players from a spreadsheet</div>
+  <div class="description">One thing to note about importing players from a spreadsheet is that the name is added exactly as it appears. If a variation on a player's name is in the spreadsheet (eg "Dave" or "David" or "Davy"), they will be registered as a separate player. If a player's name is misspelled, the mutant  misspelled version will be added as a new player. It's a good idea to check for the known version and spelling of a player's name by going to your <a href="../tournament.html?id=$tournamentId">tournament page</a> and typing a few characters into the box to find the known version of the name. You can then correct any issues when making corrections to what was imported in Step 7 below.</div>
+  <div class="subheader">Steps</div>
+  <ol>
+    <li>Open your spreadsheet in its program (probably Excel or Google Sheets).</li>
+    <li>Select File/Save As or File/Export.</li>
+    <li>Choose "Comma-Separated Values (CSV)" as the format.</li>
+    <li>Save the spreadsheet to a CSV file. You may get some warnings. Trudge through. If Excel warns you about multiple sheets, click "Save Active Sheet" (make sure you're viewing the one with the player list). If it warns you that not all features may be preserved, click "Continue". You should now have a ".csv" version of your spreadsheet.</li>
+    <li>Open the CSV file in a text editor (not in a spreadsheet program) and clean it up a bit:</li>
+    <ol>
+      <li>Remove any lines at the top that are not data (lines with data have a player name and division). There is usually at least one header line.</li>
+      <li>Optionally, remove any other lines that lack either a player name or division.</li>
+    </ol>
+    <li>Below, indicate which columns have the relevant data. Column numbers start at 1. Provide either first/last or full name. If column numbers aren't provided, I'll try to figure it out from the data. Wish me luck. Division is easier to guess than name (I'll only look for name in the first few columns, and I may still get it wrong).</li>
+    <li>Copy and paste the contents of the CSV file into the box below.</li>
+    <li>Click the "Import" button. You will then see who will be added, and which lines could not be parsed. Go over the Players list to make sure it looks right. Feel free to make corrections. You can also add players if you see some in the list of parse failures whose division you know. If you want to try cleaning up the file some more, click "Try Again" to go back to the previous step.</li>
+    <li>When you're satisfied with what you see, click the "Add Players" button. After a few seconds you should see how many players were added and then get returned to the tournament setup page.</li>
+  </ol>
+  <form>
+    <div class="subheader">Column Numbers</div>
+    <ul class="form">
+      <li>
+	<div><label for="colNumFirst">First name:</label><input type="text" id="colNumFirst" name="colNumFirst" class="number" tabIndex=0 /></div>
+	<div><label for="colNumLast">Last name:</label><input type="text" id="colNumLast" name="colNumLast" class="number" tabIndex=0 /></div>
+	<div><label for="colNumFirst">Full name:</label><input type="text" id="colNumFull" name="colNumFull" class="number" tabIndex=0 /></div>
+	<div><label for="colNumDivision">Division:</label><input type="text" id="colNumDivision" name="colNumDivision" class="number" tabIndex=0 /></div>
+    </ul>
+    <div id="csvContainer">
+      <div class="subheader" id="csvHeader">Comma-Separated Values</div>
+      <textarea rows=20 id="csvText" placeholder="Paste CSV file contents here"></textarea>
+    </div>
+    <div id="goodContainer" style="display:none;">
+      <div class="subheader" id="goodHeader">Players</div>
+      <textarea rows=20 id="goodText"></textarea>
+    </div>
+    <div id="notification"></div>
+    <div id="badContainer" style="display:none;">
+      <div class="subheader" id="badHeader">Could not parse</div>
+      <textarea rows=20 id="badText"></textarea>
+    </div>
+    <div>
+      <button type="submit" id="importButton">Import</button>
+      <button type="submit" id="addButton" style="display:none;">Add Players</button>
+      <button type="submit" id="retryButton" style="display:none;">Try Again</button>
+    </div>
+  </form>
+</body>
+</html>
+EOF;
+?>

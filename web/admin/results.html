@@ -1,0 +1,88 @@
+<?php
+#-----------------------------------------------------------------------------#
+# File: results.html
+# Author: Conrad Damon
+# Date: 02/07/2017
+#
+# Record tournament results in each event.
+#-----------------------------------------------------------------------------#
+
+require_once('db.php');
+require_once('log.php');
+require_once('util.php');
+require_once('overall.php');
+
+$tournamentId = get_input('id', 'get');
+
+if (!$tournamentId) {
+   echo "Need to provide tournament ID.";
+   die();
+}
+
+include 'overall_auth.php';
+
+$header = getTournamentHeader($tournamentId);
+
+$eventLinks = getEventLinks($tournamentId, array('scf' => true));
+$refreshLink = getLink('refresh');
+
+$task = "Enter results";
+
+echo <<< EOF
+<!doctype html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/overall/common.css">
+  <link rel="stylesheet" href="/css/overall/results.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/overall/common.js"></script>
+  <script src="/js/overall/results.js"></script>
+  <script>
+function launch() {
+    initializeResults($tournamentId);
+}
+  </script>
+  <title class="title">$task</title>
+</head>
+<body onload="launch();">
+  $header
+  <div id="notification"></div>
+  <div class="subtitle header" id="subtitle">$task</div>
+  <div class="pageLinks">$eventLinks</div>
+  <div class="chooser">
+    <div class="poolSelect" style="display:none">
+      <label for="pollSelect">Pool:</label>
+      <select name="poolSelect" id="poolSelect" tabindex=0 ></select>
+    </div>
+    <div class="divisionSelect">
+      <label for="divisionSelect">Division:</label>
+      <select name="divisionSelect" id="divisionSelect" tabindex=0 ></select>
+    </div>
+    <div class="roundSelect">
+      <label for="roundSelect">Round:</label>
+      <select name="roundSelect" id="roundSelect" tabindex=0 ></select>
+    </div>
+    <div style="display:none;" id="showAllContainer"><input type="checkbox" id="showAll" name="showAll" tabindex=0 /><label for="showAll" id="showAllLabel">show all players</label></div>
+    <div>[ <span class='pageLink' id='refresh'>refresh</span> ]</div>
+  </div>
+  
+  <div id="resultsContainer">
+    <ul class="form">
+      <li>
+	<div id="playerDiv"><label for="player">Player:</label><input type="text" id="player" name="player" tabIndex=0 /></div>
+	<div id="teamDiv" style="display:none;"><label for="team">Team:</label><input type="text" id="team" name="team" tabIndex=0 /></div>
+	<div><label for="score" id="scoreLabel">Score:</label><input type="text" id="score" name="score" tabIndex=0 /></div>
+	<div class="hint">SCR = scratch, DNF = did not finish</div>
+      </li>
+    </ul>
+    <ol id="results"></ol>
+  </div>
+  
+</body>
+</html>
+EOF;
+?>

@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<head>
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/overall/common.css">
+  <link rel="stylesheet" href="/css/overall/guide.css">
+  <title>HARV 3000 Administrator Guide</title>
+</head>
+<body>
+  <div class="title">HARV 3000 Administrator Guide</div>
+
+<?php
+   require_once('overall.php');
+   echo getHarv();
+   echo getAdminLinks();
+?>
+
+  <div class="header">General</div>
+
+  <div class="description">Running an overall tournament is not easy. I can tell from your bloodshot eyes and beleaguered look that you are a Tournament Director. You have enough to worry about without having to manage the intricacies of scoring. That's why I, the HARV 3000, was created, and why I am your new best friend. Overall tournaments last anywhere from a weekend to a full week, and combine up to seven disc events into a disc heptathlon. Some prefer the sexathlon approach and omit an event (typically discathon, the babies). It is also common to drop the TRC portion of SCF. Simply follow the steps below, and with a minimal amount of effort, scoring should be a breeze. I regret to report that I cannot help you with field reservations.</div>
+
+  <div class="description">Warning: There's only a minimal amount of error checking. But I'm not worried. You clearly know what you're doing. If you manage to dig yourself into a corner or paint yourself into a hole, you'll need to find my creator. Make sure to offer him a nice gift, perhaps a tasty snack or an insightful and heartfelt compliment.</div>
+
+  <div class="description">There are four steps to getting your tournament ready, listed below. Each has a sample URL to show you how to get there, though the easiest way is to just go to the <a href="./">Admin Home</a> and click the appropriate link.</div>
+
+  <div class="header">1. Setup</div>
+
+  <div class="description"><code>http://conraddamon.com/overall/admin/tournament.html</code></div>
+
+  <div class="description">Ideally, you'll want to do this before the tournament starts. In fact, the earlier, the better. You can make changes later and things will be okay. In fact, you can even make changes after scores have been recorded and they will be preserved (probably). There is a <a href="tournament.html">form</a> where you provide all the details needed to track scores. It has four main sections:</div>
+
+  <div class="subheader">Tournament Information</div>
+
+  <div class="description">Where, when, the tournament name, and just who this mysterious Tournament Director person is. Hint: It's you. A password is required for administrative tasks (basically everything described in this guide). Make sure you remember it, as there's no way to change it.</div>
+
+  <div class="subheader">Divisions</div>
+
+  <div class="description">Check a box for each division a player can register in. The two main divisions are Women and Open. After that, there are five age-restricted divisions: one for youngsters, and four for oldsters. When you enter scores or create teams, you will just be doing that for competitors as Open or Women players. The rest of the divisions come into play when viewing results.</div>
+
+  <div class="subheader">Pools</div>
+
+  <div class="description">If players are being broken up into pools, list the names of the pools. These pools are different from those used in the preliminary rounds of DDC and freestyle. If the tournament has pools, you'll see a pool selector show up in various places, for example when you're entering results.</div>
+
+  <div class="description">In results, divisions are like Russian nesting dolls. Each division includes all the divisions that are subsets of it, so Master includes Grand Master, etc. Open includes all the open divisions (including Junior), and the same goes for Women.</div>
+
+  <div class="subheader">Events</div>
+
+  <div class="description">This is where you tell HARV which events are being played. A full-format overall tournament features disc golf, distance, accuracy, SCF, DDC, freestyle, and discathon. If you're not going with the full format, the most common approach is to drop discathon, and to limit SCF to MTA only. Indicate how many rounds each event has. You will be entering scores for each round. The last round is the finals, the one before that is the semis, and the ones before the semis just get numbers. The first two or more rounds (usually just two) may be cumulative, meaning that the scores are totaled in order to determine a cut.</div>
+
+<div class="description">After you've set up the events, there are a few more bits of important information to provide. The first is how many events a player has to play in order to be considered an overall player and earn overall points. That's important, because overall players are only measured against other overall players. That number of events is probably between one and three. You also need to tell me whether freestyle teams have two players (pairs), three players (co-op), or either (hello, VA States). Lastly, you can decide whether the team events can have teams that mix Open, Women, and Junior players, and if so, how that affects overall points.</div>
+
+  <div class="description">You may have noticed that SCF, MTA, and TRC are listed as three separate events. Congratulations, eagle-eye. The form tries to be smart about those - if you choose SCF, then MTA and TRC disappear. Conversely, if you choose MTA or TRC, SCF disappears. That way it's obvious that you don't need to enter round info for all of them. Uncheck all the boxes to make them all reappear.</div>
+
+  <div class="description">If you allow mixed teams, you'll need to decide what impact that has on overall points. A mixed team has at least two of the three base divisions: Open, Women, and Junior. Once you check a box to allow mixed teams, you'll see three scoring choices which range from "no impact, proceed as usual" to "it's weird, let's just bail" with one more in the middle. Examples will help. Let's say Lori, who is contending for the Women's overall title, teams up with Dave (a very high-level player) in DDC, and they get fifth place. Let's say that Beth and Tita played together and got ninth, finishing as the best all-women team. Dave's overall points do not change, though the Open overall points will be affected since Lori is not in the Open division (remember, you get points for who you beat in your division). The more interesting question is what happens with Lori's overall points in the Women's division. Under the first option, they are not affected. She finishes as the top woman and gets top points, let's say 20. Under the second option, Lori gets no Women's overall points because she had a non-divisional teammate. Beth and Tita get 20 overall points for their top all-women finish. Under the third option, no overall points are awarded to women for that event. They all get zero. One important thing to note is that the third option only applies if there is indeed a mixed team in the event. Finally, if you do allow mixed teams you will see a <strong>show all players</strong> checkbox on the pages where you assign teams and enter results. Normally those pages restrict who you see (either in a list or via autocomplete) based on the selected division, but you can remove that restriction by checking the box.</div>
+
+  <div class="description" id="roundCodes">[Columbo voice] Just one more thing... A tournament may choose to limit rounds for some of its divisions, especially if they only have a few players. If you're not doing that, skip to the next section, otherwise your eyes will glaze over and it will be difficult to read the rest of this fascinating admin guide. Having a box for the number of rounds (and cumulative rounds) for every combination of event and division would be way too many boxes. Instead, use the following format: A number by itself applies to all divisions. To make an exception, add a new code with the division identifier (O, OM, OGM, OSGM, OL, OJ, W, WM, WGM, WSGM, WL, or WJ) followed by a colon and the number of rounds. For example, a tournament where there are 3 rounds (2 cumulative) of SCF for open players and 2 rounds of SCF (none cumulative) for women would use "3,W:2" for the number of rounds and "2,W:0" for the number of cumulative rounds.</div>
+
+  <div class="subheader">Scoring</div>
+
+  <div class="description">You have a few scoring options, which is a few more than I have. Some are better than others (I am what they call opinionated software). The first thing to choose is your scoring method. The "countdown" method awards a set number of overall points for first place in an event, then one less than that for second, and so on (essentially, you lose one point for each player that beats you). It has been used in practically every overall tournament forever. You also get to set the number of points awarded to the winner of an event, which is also how many players can earn overall points. Some TDs like to make sure everyone who plays an event gets points for it, so they set the maximum to a safely high number.</div>
+
+  <div class="description" id="baseCodes">The countdown base can be different for different divisions. If you want to do that, follow the method described <a href="#roundCodes">above</a> for having divisions play different numbers of rounds in certain events. A common value might be "50,W:20" to start at 50 for Open players and 20 for Women players.</div>
+
+  <div class="description">If you think of "countdown" as a top-down scoring system, "countup" is its bottom-up corollary. In a "countup" system, last place in an event gets one point, and it goes up from there. That tends to have the effect of weighting the overall toward popular events like golf, and making unpopular events like discathon a bit meaningless. Whichever scoring system is in use, ties split the aggregated points. A three-way tie for positions that award 20, 19, and 18 overall points results in each player getting 19 points.</div>
+
+  <div class="description">The other decision to make is fairly minor, in that it is unlikely to affect overall standings near the top end. Traditionally, the winning team in a team event (DDC or freestyle) has gotten the maximum number of points. That is not possible in an individual event; the team members would be considered to have tied, and split the points. That flaw has the effect of granting a small bonus (either a half or a full point) to a player who earns points in a team event. It's a minor flaw because it only matters when comparing players who did compete in a team event with players who did not, and the high-finishing overall players almost always play both team events.</div>
+
+  <div class="description">Once you have pressed the "Add Tournament" button and the tournament has been added to the clicking, whirring HARV 3000 database, you should see a change in the URL up above. It will now have a little section at the end along the lines of "?id=1", except the number will be something higher than 1. Remember that number, it's your tournament ID and will be in the URL for any page related to your tournament. You'll also see the name of your tournament at the top of the page. The name is a link to the tournament website if you provided one.</div>
+
+  <div class="header">2. Register Players</div>
+
+  <div class="description"><code>http://conraddamon.com/overall/admin/tournament.html?id=1</code></div>
+
+  <div class="description">Now that the tournament knows a bit about itself, it's time to sign up players. Once you've registered the tournament, you'll notice a new section appearing at the top where you can add players and tell HARV what division they're in. Player names will autocomplete against a list of known overall players, so there's a good chance you'll only need to type a few letters before you see the right name pop up. Even better, the list excludes players who have already been registered or who don't match the gender of the selected division. After you select a name, only the divisions appropriate to their gender (and available in the tournament) will appear in the division dropdown list. You can also enter a player simply by typing in their name (don't worry, you don't need to capitalize it; I'll take care of that). To see the list of players registered so far, go to the tournament page.</div>
+
+  <div class="description">If you already have a spreadsheet tracking player registrations, you can use that instead of typing all those names in. Export the data (player names and divisions are all that's really needed) to comma-separated values (CSV format) and save the results in a file. Come back to HARV and click the "Import" link. You'll see a big box. Open your CSV file, copy the contents, and then paste them into the box and click the "Import" button, and you're on your way. You'll get a chance to look things over before actually adding the players.</div>
+
+  <div class="description">Note that there is no need to tell HARV which events a player has signed up for. There's a much easier way for me to know whether a player is participating in a certain event: They play it, and a result is entered. HARV is based on cold, hard data.</div>
+
+  <div class="header">3. Assign Teams</div>
+
+  <div class="description"><code>http://conraddamon.com/overall/admin/teams.html?id=1</code></div>
+
+  <div class="description">Filling out that form and adding players was fun, wasn't it? Well, you haven't seen anything yet. I'm about to blow your mind, assuming your tournament has at least one team event. If it doesn't, well then maybe your mind doesn't deserve to be blown. Wait, that came out wrong. Okay, you have team events, and I'm going to need to know about teams. Go to the teams page and choose an event and division. You should see a list of the unteamed players, which on your first visit will be all the registered players in that division. To form a team, drag one player onto another. Coolio, right? The team will be added to the list of teams below. To break up a team (in case you make a mistake, or they get divorced), double-click the team and the members will return to the list of unteamed players. Both lists are in alphabetical order by last name.</div>
+
+  <div class="description">After you add or remove a team, you'll see a little message appear briefly under your tournament name up above. That way you know that you actually did something.</div>
+
+  <div class="description">At some point you may look in the player list for someone who isn't there because they're not in the list of registered players. Just go over to the tournament admin page (see step 2 above), and add them. Ideally, that page is in another tab or window. Then come back to the teams page and click <strong>refresh</strong> to load the newly registered player.</div>
+
+  <div class="description">It is possible to have three-player teams for freestyle. To create a three-player team, first create a two-player team as described above. That team will show up in the teams list below. To add the third player, drag a name from the unteamed player list onto the team in the team list. Voila! If freestyle is three-player teams only, two-player teams will be highlighted so you know they're incomplete.</div>
+
+  <div class="header">4. Record Results</div>
+
+  <div class="description"><code>http://conraddamon.com/overall/admin/results.html?id=1</code></div>
+
+  <div class="description">Congratulations, you're all done! Kick up your feet and pop open a cold one. No, wait, there's still the actual tournament. Here's where your hard work (and mine) pays off. Go to the results page for your tournament. That page has three main purposes in its webby little life: A way for you to choose which division and event you want to enter scores for, a couple of boxes where you can enter a player's name and their score, and a sorted list of the scores so far.</div>
+
+  <div class="description">To enter a score, start typing a name in the player box. It will autocomplete against tournament players in the selected division who do not yet have scores for the selected round and event. A summary of the scores you've recorded appears above the list of events. Note that the age-restricted divisions do not appear in the list of divisions you can choose. At most, it's Open and Women. That's because the age-restricted divisions tend to be mixed together when they play, whereas Open and Women sometimes play events at different times. You don't really want to be handed a golf card and have to select the division four times just to get the scores in, do you? I didn't think so.</div>
+
+  <div class="description">If your tournament is using pools, you will have the option to choose one. Some events may be pooled (usually field events and/or golf), and some may not (team events). You don't need to say which pool a player is in when you register them. The pool that's selected when you enter a result for them will be used.</div>
+
+  <div class="description">If a player doesn't show up in the autocomplete list, it's probably because they haven't been registered. Go to the tournament admin page, add them, and then come back to the results page and click <strong>refresh</strong> to update the autocomplete list.</div>
+
+  <div class="description">The list at the bottom shows the scores you've entered so far, sorted from best to worst. They are numbered so you can quickly check to see how many players you've handled. The numbers are not places, by the way, so tied players will have different numbers. To see places, go to the main tournament page. To remove a score for any reason, double-click the name. If you entered the wrong score for someone, just remove and re-add it.</div>
+
+<h2>To-do and Done list</h2>
+
+<pre>
+To-do
+-----
+* import results from spreadsheet
+* auto-register player on result entry
+  - split AC list into registered and unregistered players
+* reduce need to reload pages
+* refresh AC after removing registered player
+* bug: player with no result in round 1 of golf then DNF in round 2 threw off golf overall points
+* check for duplicate result entry, or just overwrite
+* error checking
+* error check tournament add
+* responsive
+* handle DB errors
+
+Offline
+  - need manifest to load app
+  - data: js-data + LocalForage adapter + HTTP adapter
+  - data layer that uses adapter based on offline mode
+    - online: localforage and http
+    - offline: localforage
+      - maintain change log
+      - sync when back online
+
+Unlikely
+--------
+* overall scoring override (overall pts are calculated and not in DB)
+* edit person record (eg name)
+* Teams page: if only one event, no need for link bar
+
+Done
+----
+* reverse column sort
+* player add: show all divs after player added
+* player add: only show players who aren't yet registered
+* show tourn name in edit mode
+* show current info in edit mode
+* edit tournament
+* assign players to teams (dnd?)
+* factor backend JS calls into generic version
+* easy way to see registered players
+* three-person teams
+* sortable overall table
+* in team event, ignore player playing out of div
+* TA: new player in lowercase is capitalized
+* consistent message area
+* preserve results if event removed
+* score of 0 vs no score
+* remove result
+* import players
+* show intermediate cumulative total
+* team event results
+* sort by event in PHP
+* If freestyle is 3's, highlight incomplete team.
+* Jr Sr II III is part of last name
+* number of rounds might vary by division
+* no score in an event (DNS)
+* 0 instead of NC
+* divisional scoring
+        - for entering results, just O/W
+        - for showing results, expose all divisions plus "all open" and "all women"
+* SCF results show MTA/TRC
+* divisional overall should be within division; open includes O*
+        - does OM include OGM etc? it should
+* VA: Juliana/Beth will play DDC in Open, but skipped for Open overall pts
+        - handle when entering results
+* Teaming should just use the two wildcard divisions. I'll fix that.
+* team of open+woman
+* write a guide to using system
+* sort by MTA or TRC round in SCF results
+* event result column sort
+* player page
+* TD console at admin/index.html
+* user console at index.html
+* full points for team events
+* player page - exclude non-played events
+* remove player from tournament
+* password protection
+* export results - jspdf
+* vary point base by division
+* add link from the setup to the admin guide
+* countup scoring method
+* make active autocomplete item easier to see
+* update/delete team when player removed
+* admin function to remove tournament
+* only load active players unless test tournament
+* check with WFDF for records, highlight when tied/broken
+* index tables
+* fix bug where forming a three-person team doesn't work, or works once
+* training manual/tutorial - walk thru sample tourney
+* allow team event to compete as one division
+* need Object.values polyfill for Safari/mobile
+* fix bugs with player results (handle team results)
+* match name across space
+* capitalize should preserve II III
+* autocomplete lists need to adjust to added/removed players
+* remove feature that edits division dropdown during registration
+* refresh to get players/teams
+</pre>
+
+</body>
+</html>

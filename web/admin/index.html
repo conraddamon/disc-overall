@@ -1,0 +1,79 @@
+<?php
+#-----------------------------------------------------------------------------#
+# File: index.html
+# Author: Conrad Damon
+# Date: 02/15/2017
+#
+# Admin home page.
+#-----------------------------------------------------------------------------#
+
+require_once('db.php');
+require_once('log.php');
+require_once('util.php');
+require_once('overall.php');
+
+$test = get_input('test', 'get');
+
+$sql = "SELECT * FROM tournament ORDER BY start DESC";
+$tournamentResults = db_query($sql);
+
+$pageTitle = "Welcome to HARV 3000: Tournament Directors";
+$harv = getHarv();
+$adminLinks = getAdminLinks();
+
+$tournamentHtml = '';
+$testTournamentHtml = '';
+foreach ($tournamentResults as $tournament) {
+   $id = $tournament['id'];
+   $title = getTournamentTitle($tournament);
+
+   $html = <<<EOF
+<li class="tournamentLink">
+  <div><a href="../tournament.html?id=$id">$title</a></div>
+  <div>[ <a href="tournament.html?id=$id" class="pageLink">Edit Tournament</a> ]</div>
+  <div>[ <a href="tournament.html?id=$id" class="pageLink">Add Players</a> ]</div>
+  <div>[ <a href="teams.html?id=$id" class="pageLink">Assign Teams</a> ]</div>
+  <div>[ <a href="results.html?id=$id" class="pageLink">Enter Results</a> ]</div>
+</li>
+EOF;
+   if (!$tournament['test']) {
+      $tournamentHtml .= $html;
+   }
+   else {
+      $testTournamentHtml .= $html;
+   }
+}
+
+echo <<< EOF
+<!doctype html>
+<html>
+<head>
+<link rel="stylesheet" href="/css/common.css">
+<link rel="stylesheet" href="/css/overall/common.css">
+<link rel="stylesheet" href="/css/overall/index.css">
+<title>$pageTitle</title>
+</head>
+<body>
+  <div class="title">$pageTitle</div>
+$harv
+$adminLinks
+  <div class="subtitle">Tournament password required for administrative functions.</div>
+  <ul class="form">
+    $tournamentHtml
+  </ul>
+EOF;
+
+if ($test) {
+echo <<< EOF
+  <div class="header subtitle">Testing</div>
+  <ul class="form">
+    $testTournamentHtml
+  </ul>
+EOF;
+}
+
+echo <<< EOF
+</body>
+</html>
+EOF;
+?>

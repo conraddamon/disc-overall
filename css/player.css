@@ -1,0 +1,11 @@
+.playerPage .eventTitle {
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #666;
+}
+
+.playerPage .pageLink {
+  color: black;
+}

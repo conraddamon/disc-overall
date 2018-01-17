@@ -1,0 +1,333 @@
+<?php
+#-----------------------------------------------------------------------------#
+# File: tournament.html
+# Author: Conrad Damon
+# Date: 02/04/2017
+#
+# Create or edit a tournament.
+#-----------------------------------------------------------------------------#
+
+require_once('db.php');
+require_once('log.php');
+require_once('util.php');
+require_once('auth.php');
+require_once('overall.php');
+
+$tournamentId = get_input('id', 'get');
+$title = 'Tournament Setup';
+$header = '<div class="title">Set Up an Overall Tournament</div>';
+$links = '';
+$hideForm = '';
+if ($tournamentId) {
+   include 'overall_auth.php';
+   $jsonTournamentData = json_encode($tournamentData);
+   $title = getTournamentTitle($tournamentData);
+   $header = getTournamentHeader($tournamentData);
+   $hideForm = 'style=display:none';
+   $links = <<< EOF
+<div class="pageLinks">
+  [ <a href="../tournament.html?id=$tournamentId" class="pageLink">Tournament page</a> ]
+  [ <a href="teams.html?id=$tournamentId" class="pageLink">Assign teams</a> ]
+  [ <a href="results.html?id=$tournamentId" class="pageLink">Enter results</a> ]
+  [ <a href="javascript:enableEdit();" class="pageLink">Edit tournament</a> ]
+</div>
+EOF;
+}
+
+echo <<< EOF
+<!doctype html>
+<html>
+<head>
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<link rel="stylesheet" href="/css/common.css"> 
+<link rel="stylesheet" href="/css/overall/common.css"> 
+<link rel="stylesheet" href="/css/overall/tournament_admin.css"> 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/overall/common.js"></script>
+<script src="/js/overall/tournament_admin.js"></script>
+<script>
+function launch() {
+    initializeTournamentAdmin($jsonTournamentData);
+}
+</script>
+<title class="title">$title</title>
+</head>
+<body onload="launch()">
+  $header
+  <div id="notification"></div>
+  $links
+  <div id="playerContainer" style="display:none;">
+    <div class="header">Register Players</div>
+    <div class="description">Add a player to the tournament below by entering their name and division. The name field will autocomplete against known players who are not already registered. You can also add a player by typing their name into the field (lower case is fine) and selecting their division.</div>
+    <form id="playerForm">
+      <ul class="form">
+	<li>
+	  <div><label for="player">Name:</label></div>
+	  <div><input name="player" type="text" id="player" tabIndex=0 /></div>
+	  <div><label for="divisionSelect">Division:</label></div>
+	  <div><select id="divisionSelect" name="divisionSelect" tabindex=0></select></div>
+	  <div><button id="addPlayer">Add</button></div>
+	  <div class="tournamentLink">
+	    [ <a href="javascript:showRemovePlayerDialog();" class="pageLink">Remove player</a> ]
+	    [ <a href="import.html?id=$tournamentId" class="pageLink">Import</a> ]
+	  </div>
+	</li>
+      </ul>
+    </form>
+    <div class="hint">Master = over 40, Grand Master = over 50, Senior Grand Master = over 60, Legend = over 70, Junior = under 19</div>
+  </div>
+
+<div id="tournamentContainer" $hideForm>  
+  <div class="description" id="editWarning" style="display:none;">Tournament information can be changed below. It is not recommended to change anything in the Events, Divisions, or Scoring sections once results have already been recorded. If you need help, look in the <a href="guide.html">Admin Guide</a>.</div>
+
+  <form id="tournamentForm" method="post" action="tournament.php">
+
+    <div id="informationSection">
+      <div class="header">Tournament Information</div>
+      <div class="description">Enter basic information about the tournament and its director.</div>
+      <ul class="form">
+	<li>
+	  <div><label for="name">*Name:</label></div>
+	  <div><input name="name" type="text" id="name" tabIndex=0 /></div>
+	  <div class="note">It is not necessary to include the year.</div>
+	</li>
+	<li>
+	  <div><label for="location">*Location:</label></div>
+	  <div><input name="location" type="text" id="location" tabIndex=0 /></div>
+	</li>
+	<li>
+	  <div><label for="start">*Start Date:</label></div>
+	  <div><input name="start" type="text" id="start" tabIndex=0 /></div>
+	</li>
+	<li>
+	  <div><label for="end">*End Date:</label></div>
+	  <div><input name="end" type="text" id="end" tabIndex=0 /></div>
+	</li>
+	<li>
+	  <div><label for="td_name">*Director Name:</label></div>
+	  <div><input name="td_name" type="text" id="td_name" tabIndex=0 /></div>
+	</li>
+	<li>
+	  <div><label for="td_email">*Director Email:</label></div>
+	  <div><input name="td_email" type="text" id="td_email" tabIndex=0 /></div>
+	</li>
+	<li id="passwordContainer">
+	  <div><label for="password">*Password:</label></div>
+	  <div><input name="password" type="password" id="password" tabIndex=0 /></div>
+	  <div class="note">Required to perform tournament administration.</div>
+	</li>
+	<li>
+	  <div><label for="url">Web Site:</label></div>
+	  <div><input name="url" type="text" id="url" tabIndex=0 /></div>
+	</li>
+	<li>
+	  <div><label for="note" class="textLabel">Note:</label></div>
+	  <div><textarea rows="3" id="note" name="note" tabIndex=0></textarea></div>
+	  <div class="note">A brief description or note that will appear on the tournament page</div>
+	</li>
+      </ul>
+    </div>
+
+    <div id="divisionSection">
+      <div class="header">Divisions</div>
+      <div class="description">Indicate below which divisions are offered in this tournament. The two leftmost checkboxes are for the Open and Women's divisions.</div>
+      <div class="description"><strong>M</strong> = Master (over 40), <strong>GM</strong> = Grand Master (over 50), <strong>SGM</strong> = Senior Grand Master (over 60), <strong>L</strong> = Legend (over 70), <strong>J</strong> = Junior (under 19)</div>
+      
+      <table class="divisionTable">
+	<tr>
+	  <th></th><th></th><th>M</th><th>GM</th><th>SGM</th><th>L</th><th>J</th>
+	</tr>
+	<tr>
+	  <td>Open</td>
+	  <td><input type="checkbox" name="divisions[]" value="O" checked="checked" tabIndex=0 /></td>
+	  <td><input type="checkbox" name="divisions[]" value="OM" tabIndex=0 /></td>
+	  <td><input type="checkbox" name="divisions[]" value="OGM" tabIndex=0 /></td>
+	  <td><input type="checkbox" name="divisions[]" value="OSGM" tabIndex=0 /></td>
+	  <td><input type="checkbox" name="divisions[]" value="OL" tabIndex=0 /></td>
+	  <td><input type="checkbox" name="divisions[]" value="OJ" tabIndex=0 /></td>
+	</tr>
+	<tr>
+	  <td>Women</td>
+	  <td><input type="checkbox" name="divisions[]" value="W" checked="checked" tabIndex=0 /></td>
+	  <td><input type="checkbox" name="divisions[]" value="WM" tabIndex=0 /></td>
+	  <td><input type="checkbox" name="divisions[]" value="WGM" tabIndex=0 /></td>
+	  <td><input type="checkbox" name="divisions[]" value="WSGM" tabIndex=0 /></td>
+	  <td><input type="checkbox" name="divisions[]" value="WL" tabIndex=0 /></td>
+	  <td><input type="checkbox" name="divisions[]" value="WJ" tabIndex=0 /></td>
+	</tr>
+      </table>
+    </div>
+
+    <div id="juniorScoringSection">
+      <input type="checkbox" name="juniorScoring" id="juniorScoring" tabIndex=0 value="on"/>
+      Keep scoring for juniors separately (they don't compete against Open/Women)
+    </div>
+
+    <div id="divisionSection">
+      <div class="header">Pools</div>
+      <div class="description">If your tournament has pools, list them here: <input type="text" name="pools" id="pools" tabIndex=0 /></div>
+    </div>
+
+    <div id="eventSection">
+      <div class="header">Events</div>
+      <div class="description">An overall tournament can have up to seven different events being contested. For each of the seven, indicate whether it is part of this tournament, how many rounds there are (including semis and finals), and how many of those are cumulative. Cumulative rounds start with the first round, and count the sum of a player's scores in all rounds up to that point. If no rounds are cumulative, the box can be left blank. If all divisions don't play the same number of rounds (or cumulative rounds), see the <a href="../adminGuide.html#roundCodes">Admin Guide</a>.</div>
+      <ul class="form" id="eventTable">
+	<li>
+	  <div></div>
+	  <div class='eventHeader'>Event</div>
+	  <div class='eventHeader'>Rounds</div>
+	  <div class='eventHeader'>Cumulative</div>
+	  <div class='eventHeader'>Notes</div>
+	</li>
+	<li>
+	  <div><input type="checkbox" name="events[]" value="golf" id="golf" tabIndex=0 /></div>
+	  <div><label for="golf">Disc Golf</label></div>
+	  <div><input type="text" name="golf_rounds" id="golf_rounds" class="number" tabIndex=0 /></div>
+	  <div><input type="text" name="golf_cumulative_rounds" id="golf_cumulative_rounds" class="number tabIndex=0" /></div>
+	  <div>Rounds are generally 9 or 18 holes. Normally, all of golf is cumulative.</div>
+	</li>
+	<li>
+	  <div><input type="checkbox" name="events[]" value="distance" id="distance" tabIndex=0 /></div>
+	  <div><label for="distance">Distance</label></div>
+	  <div><input type="text" name="distance_rounds" id="distance_rounds" class="number" tabIndex=0 /></div>
+	  <div><input type="text" name="distance_cumulative_rounds" id="distance_cumulative_rounds" class="number" tabIndex=0 /></div>
+	  <div>Many full-format overall tournaments make the first two rounds of distance cumulative.</div>
+	</li>
+	<li>
+	  <div><input type="checkbox" name="events[]" value="accuracy" id="accuracy" tabIndex=0 /></div>
+	  <div><label for="accuracy">Accuracy</label></div>
+	  <div><input type="text" name="accuracy_rounds" id="accuracy_rounds" class="number" tabIndex=0 /></div>
+	  <div><input type="text" name="accuracy_cumulative_rounds" id="accuracy_cumulative_rounds" class="number" tabIndex=0 /></div>
+	  <div>Many full-format overall tournaments make the first two rounds of accuracy cumulative.</div>
+	</li>
+	<li id="scf_row">
+	  <div><input type="checkbox" name="events[]" value="scf" id="scf" tabIndex=0 /></div>
+	  <div><label for="scf">Self-Caught Flight (SCF)</label></div>
+	  <div><input type="text" name="scf_rounds" id="scf_rounds" class="number" tabIndex=0 /></div>
+	  <div><input type="text" name="scf_cumulative_rounds" id="scf_cumulative_rounds" class="number" tabIndex=0 /></div>
+	  <div>Many full-format overall tournaments make the first two rounds of SCF cumulative.</div>
+	</li>
+	<li id="mta_row">
+	  <div><input type="checkbox" name="events[]" value="mta" id="mta" tabIndex=0 /></div>
+	  <div><label for="mta">Maximum Time Aloft (MTA)</label></div>
+	  <div><input type="text" name="mta_rounds" id="mta_rounds" class="number" tabIndex=0 /></div>
+	  <div><input type="text" name="mta_cumulative_rounds" id="mta_cumulative_rounds" class="number" tabIndex=0 /></div>
+	  <div>A tournament usually offers either SCF or MTA.</div>
+	</li>
+	<li id="trc_row">
+	  <div><input type="checkbox" name="events[]" value="trc" id="trc" tabIndex=0 /></div>
+	  <div><label for="golf">Throw, Run, and Catch (TRC)</label></div>
+	  <div><input type="text" name="trc_rounds" id="trc_rounds" class="number" tabIndex=0 /></div>
+	  <div><input type="text" name="trc_cumulative_rounds" id="trc_cumulative_rounds" class="number" tabIndex=0 /></div>
+	  <div>It is rare to have TRC as a stand-alone event.</div>
+	</li>
+	<li>
+	  <div><input type="checkbox" name="events[]" value="ddc" id="ddc" tabIndex=0 /></div>
+	  <div><label for="ddc">Double Disc Court (DDC)</label></div>
+	  <div><input type="text" name="ddc_rounds" id="ddc_rounds" class="number" tabIndex=0 /></div>
+	  <div></div>
+	  <div></div>
+	</li>
+	<li>
+	  <div><input type="checkbox" name="events[]" value="freestyle" id="freestyle" tabIndex=0 /></div>
+	  <div><label for="freestyle">Freestyle</label></div>
+	  <div><input type="text" name="freestyle_rounds" id="freestyle_rounds" class="number" tabIndex=0 /></div>
+	  <div><input type="text" name="freestyle_cumulative_rounds" id="freestyle_cumulative_rounds" class="number" tabIndex=0 /></div>
+	  <div>Has never been cumulative.</div>
+	</li>
+	<li>
+	  <div><input type="checkbox" name="events[]" value="discathon" id="discathon" tabIndex=0 /></div>
+	  <div><label for="discathon">Discathon</label></div>
+	  <div><input type="text" name="discathon_rounds" id="discathon_rounds" class="number" tabIndex=0 /></div>
+	  <div><input type="text" name="discathon_cumulative_rounds" id="discathon_cumulative_rounds" class="number" tabIndex=0 /></div>
+	  <div>Has never been cumulative.</div>
+	</li>
+      </ul>
+
+      <ul class="form">
+	<li>
+	  <div><label for="min_events">Minimum number of events played in order to earn overall points:</label></div>
+	  <div><input type="text" name="min_events" id="min_events" value="1" tabIndex=0 /></div>
+	</li>
+      </ul>
+
+      <ul class="form">
+	<li>
+	  <div>Freestyle team is: </div>
+	  <div><input type="checkbox" name="freestyle_team[]" value="2" id="freestyle2" checked="checked" tabIndex=0 /></div>
+	  <div><label for="freestyle2">2 players</label></div>
+	  <div><input type="checkbox" name="freestyle_team[]" value="3" id="freestyle3" tabIndex=0 /></div>
+	  <div><label for="freestyle3">3 players</label></div>
+	</li>
+	<li>
+	  <div>Allow mixed teams for: </div>
+	  <div><input type="checkbox" name="mixed_team[]" value="ddc" id="mixed_team_ddc" tabIndex=0 /></div>
+	  <div><label for="mixed_team_ddc">DDC</label></div>
+	  <div><input type="checkbox" name="mixed_team[]" value="freestyle" id="mixed_team_freestyle" tabIndex=0 /></div>
+	  <div><label for="mixed_team_freestyle">Freestyle</label></div>
+	</li>
+      </ul>
+      <div id='mixed_team_scoring_section' style="display:none;">
+	<div><input type="radio" name="mixed_team_scoring" value="full" id="mixed_team_scoring_full" tabIndex=0 /><label for="mixed_team_scoring_full">Award divisional overall points to all players on mixed teams</label></div>
+	<div><input type="radio" name="mixed_team_scoring" value="division" id="mixed_team_scoring_division" tabIndex=0 /><label for="mixed_team_scoring_division">Award divisional overall points only to players on divisional teams</label></div>
+	<div><input type="radio" name="mixed_team_scoring" value="none" id="mixed_team_scoring_none" tabIndex=0 /><label for="mixed_team_scoring_none">Do not award divisional overall points if there are mixed teams</label></div>
+      </div>
+
+    <div id="scoringSection">
+      <div class="header">Overall Point Scoring</div>
+      <div class="description">Choose a scoring system below for awarding overall points in each event. Ties will share available points (for example, if three players tie for spots that would have awarded 20, 19, and 18 points, they each get 19.)</div>
+      <ul class="form">
+	<li>
+	  <div><input type="radio" name="scoring" value="countdown" id="scoring_countdown" checked="checked" tabIndex=0 /></div>
+	  <div><label for="scoring_countdown">Count down from: </label></div>
+	  <div><input type="text" name="countdown_base" id="countdown_base" class="number" value="50" tabIndex=0 /></div>
+	  <div class="note">First place gets <span class="base1">50</span> points, second gets <span class="base2">49</span>, third gets <span class="base3">48</span>, and so on down. To vary by division, see the <a href="../adminGuide.html#baseCodes">Admin Guide</a>.</div>
+	</li>
+	<li>
+	  <div><input type="radio" name="scoring" value="countup" id="scoring_countup" tabIndex=0 /></div>
+	  <div><label for="scoring_countup">Points for everyone</label></div>
+	  <div></div>
+	  <div class="note">Last place in an event gets 1 point, next to last gets 2 points, and so on up. Skews the overall toward popular events.</div>
+	</li>
+      </ul>
+      <div class="subheader">Team Events</div>
+      <div>
+	<input type="radio" name="scoring_team" value="full" id="scoring_team_full" checked="checked" tabIndex=0 />
+	<label for="scoring_team_full">Each first place team member gets <span class="base1">50</span> points.</label>
+      </div>
+      <div>
+	<input type="radio" name="scoring_team" value="split" id="scoring_team_split" tabIndex=0 />
+	<label for="scoring_team_split">First place team members split top points as if they had tied. For example, each member of a winning three-player team gets <span class="base2">49</span> points.</label>
+      </div>
+      <div class="subheader">Scratches</div>
+      <div>
+	<input type="radio" name="scoring_scratches" value="tie" id="scoring_scratches_tie" tabIndex=0 />
+	<label for="scoring_scratches_tie">Players who scratch are tied and split points.</label>
+      </div>
+      <div>
+	<input type="radio" name="scoring_scratches" value="revert" id="scoring_scratches_revert" checked="checked" tabIndex=0 />
+	<label for="scoring_scratches_revert">Players who scratch get points based on their finish in the previous round.</label>
+      </div>
+    </div>
+
+    <button id="submitButton" type="submit" tabIndex=0>Add Tournament</button>
+    <input type="hidden" name="tournamentId" id="tournamentId" />
+  </form>
+</div>
+
+<div id="removePlayerDialog" title="Remove Player" style="display:none">
+  <ul class="form">
+    <li>
+      <div><label for="playerToRemove">Name:</label></div>
+      <div><input type="text" id="playerToRemove" tabIndex=0 /></div>
+      <div><button id="removePlayer">Remove</button></div>
+    </li>
+  </ul>
+</div>
+
+</body>
+</html>
+EOF
+?>

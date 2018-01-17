@@ -1,0 +1,57 @@
+.description {
+  margin: 1rem 0;
+}
+
+button {
+  margin-top: 2rem;
+}
+
+.tournamentLink {
+  padding-left: 10rem;
+}
+
+textarea {
+  width: 20rem;
+}
+
+#player {
+  width: 10rem;
+}
+
+#playerAdded {
+  display: inline-block;
+}
+
+#start, #end {
+  width: 7rem;
+}
+
+.textLabel {
+  vertical-align: top;
+}
+
+.eventHeader {
+  font-weight: bold;
+}
+
+#eventSection .number, #scoringSection .number {
+  width: 8rem;
+}
+
+#min_events {
+  width: 2rem;
+  margin-top: 2rem;
+}
+
+.divisionTable td {
+  padding: 1rem;
+}
+
+input[type="radio"] {
+  margin: .5rem 0;
+}
+
+#mixed_team_scoring_section input {
+  margin-left: 3rem;
+  margin-right: 1rem;
+}

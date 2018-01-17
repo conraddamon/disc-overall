@@ -1,0 +1,1045 @@
+/**
+ * Functions to help with display of tournament or player results.
+ */
+
+/**
+ * Tournament page launch function. Tournament ID comes from HTML page.
+ *
+ * @param {string} tournamentId    tournament ID
+ */
+function initializeTournament(tournamentId) {
+
+    window.tournamentId = String(tournamentId);
+
+    // handle event link click
+    $('.pageLink').click(pageLinkClicked);
+	
+    // handle change in division
+    $('#divisionSelect,#poolSelect').change(function(e) {
+	    showPage(window.curPage);
+	});
+
+    window.qs = parseQueryString();
+
+    loadInitialData(showPage.bind(null, window.qs.page || 'players'));
+}
+
+/**
+ * Player page launch function. Tournament ID comes from HTML page.
+ *
+ * @param {string} playerId        player ID
+ * @param {string} tournamentId    tournament ID
+ */
+function initializePlayer(playerId, tournamentId) {
+
+    window.playerPageId = String(playerId);
+    window.tournamentId = String(tournamentId);
+
+    loadInitialData(showPlayerPage);
+}
+
+/**
+ * Grab the data we'll need before we can get started.
+ *
+ * {function} callback     function to call when all the data has been received
+ */
+function loadInitialData(callback) {
+
+    // send the set of requests for data that we need to get going; the requests are not dependent on each
+    // other, so are sent in parallel
+    var getTournament = sendRequest('get-tournament', { tournamentId: window.tournamentId }),
+        getEvents = sendRequest('get-event', { tournamentId: window.tournamentId }),
+        getPlayers = sendRequest('load-player', { tournamentId: window.tournamentId, getName: true });
+
+    var requests = [ getTournament, getEvents, getPlayers ],
+        callbacks = [ handleTournamentInfo, saveEvents, handleNameInfo ];
+
+    // once we have data, we can show a page
+    sendRequests(requests, callbacks).then(getTeamInfo).then(callback);
+}
+
+/**
+ * Sets up the division select now that we know what divisions are offered.
+ *
+ * @param {object} data    tournament data
+ */
+function handleTournamentInfo(data) {
+
+    var td = window.tournamentData = data;
+    populateDivisionSelect(td.divisions);
+    if (data.pools) {
+        $('.poolSelect').show();
+        populatePoolSelect(data.pools, true);
+    }
+    if (data.junior_scoring_separate == 1) {
+	delete DIV_MATCH['O']['OJ'];
+	delete DIV_MATCH['W']['WJ'];
+	//	DIV_MATCH['OM'] = DIV_MATCH['OGM'] = DIV_MATCH['OSGM'] = DIV_MATCH['WM'] = DIV_MATCH['WGM'] = DIV_MATCH['WSGM'] = null;
+    }
+}
+
+function getTeamInfo() {
+
+    var requests = [], callbacks = [];
+    TEAM_EVENTS.forEach(function(event) {
+	    var eventId = window.eventData[event] && window.eventData[event].id;
+	    if (eventId) {
+		requests.push(sendRequest('get-teams', { eventId: eventId }));
+		callbacks.push(handleTeamInfo);
+	    }
+	});
+
+    return sendRequests(requests, callbacks);
+}
+
+/**
+ * User has selected a page from the link bar.
+ *
+ * @param {string} page    event name, or 'players'
+ */
+function showPage(page, data) {
+
+    if (page === 'export') {
+	exportResults();
+	return;
+    }
+
+    // ignore data if it's the jQuery data struct
+    if (data && $.isArray(data) && typeof data[0] === 'string') {
+	data = null;
+    }
+
+    // current selection is underlined
+    $('#' + window.curPage).removeClass('current');
+    $('#' + page).addClass('current');
+
+    window.curPage = page;
+    window.curEventId = window.eventData && window.eventData[page] && window.eventData[page].id;
+
+    setSubtitle();
+
+    if (!window.playerPageId) {
+	$('#content').html('');
+    }
+
+    // reset sorting for new page
+    window.sortColumn = null;
+    window.reverseSort = false;
+
+    switch(page) {
+
+    case 'players': {
+	showRegisteredPlayers();
+	break;
+    }
+
+    case 'scf': {
+	showScf(data);
+	break;
+    }
+
+    case 'overall': {
+	showOverall(data);
+	break;
+    }
+
+    default: showResults(page, data);
+
+    }
+}
+
+/**
+ * Sets a header so it's clear what results are being shown.
+ */
+function setSubtitle() {
+
+    if (window.playerPageId) {
+	$('#subtitle').text(window.playerData[window.playerPageId].name);
+    }
+    else {
+	var division = getDivision(),
+	    divText = getDivisionAdjective(division),
+	    event = capitalizeEvent(window.curPage);
+	
+	$('#subtitle').text(divText + ' ' + event);
+    }
+}
+
+/**
+ * Shows a list of players in each division.
+ */
+function showRegisteredPlayers() {
+
+    if (!window.playerData) {
+	$('#content').append("There are no players registered for this tournament.");
+	return;
+    }
+
+    var division = getDivision(),
+	pool = getPool();
+
+    var players = Object.values(window.playerData).filter(player => player.name.indexOf('Player') !== 0 && divisionMatch(playerData[player.id].division, division));
+
+    if (pool) {
+	players = players.filter(player => player.pool === pool);
+    }
+
+    if (!players.length) {
+	var msg = "There are no players registered in the " + getDivisionAdjective(division) + " division";
+	if (pool) {
+	    msg += " in the " + pool + " pool";
+	}
+	msg += ".";
+	$('#content').append(msg);
+	return;
+    }
+
+    $('#content').append(showPlayers(players, { showIndexes: true, showDivisions: false }));
+
+    $('.playerListTable .playerName').click(goToPlayerPage);
+}
+
+/**
+ * Shows the results for a single event.
+ *
+ * @param {string} event    event name
+ */
+function showResults(event, data) {
+
+    window.curEvent = event;
+
+    if (data) {
+	gotResults(event, data);
+    }
+    else {
+	sendRequest('get-results', { event: event, eventId: window.curEventId, sort: 'round' }, gotResults.bind(null, event));
+    }
+}
+
+/**
+ * Displays overall results.
+ *
+ * @param {Array} data     (optional) list of results
+ */
+function showOverall(data) {
+
+    if (data) {
+	showOverallResults(data);
+    }
+    else {
+	sendRequest('get-results', { tournamentId: window.tournamentId, sort: 'round' }, showOverallResults);
+    }
+}
+
+/**
+ * Processes results by displaying them.
+ *
+ * @param {string} event    event name
+ * @param {Array}  data     (optional) list of results
+ */
+function gotResults(event, data) {
+
+    data = filterResultsByDivision(data, getDivision());
+    data = filterResultsByPool(data, getPool());
+    window.resultData = data;
+
+    if (!data || !data.length) {
+	$('#content').append('No results have been recorded yet.');
+	return;
+    }
+
+    // see if there's a reason to show hundredths
+    checkDecimal(data);
+
+    var tableId = !window.playerPageId ? 'resultsTable' : 'resultsTable-' + event,
+	html = '<table class="resultsTable" id="' + tableId + '"></table>',
+	contentElId = window.playerPageId ? 'player-' + event : 'content';
+
+    $('#' + contentElId).append(html);
+    $('#' + tableId).append(getResultsHeader());
+
+    displayResults();
+
+    if (!window.playerPageId) {
+	$('#resultsTable th span').click(sortResults);
+    }
+}
+
+/**
+ * Returns a header for a non-overall event. The header is a table row.
+ */
+function getResultsHeader() {
+
+    var event = window.curEvent,
+	division = getDivision(),
+	rounds = getRoundsByDivision(event, division),
+	numCumulative = getRoundsByDivision(event, division, true);
+
+    var playerHeader = !window.playerPageId ? '<th id="result_player"><span class="pageLink">Player</span></th>' : '',
+	html = '<tr><th id="result_place"><span class="pageLink">Place</span></th>' + playerHeader;
+
+    for (var round = 1; round <= rounds; round++) {
+	if (event === 'scf') {
+	    html += '<th id="result_mta_round' + round + '"><span class="pageLink">MTA</span></th>';
+	    html += '<th id="result_trc_round' + round + '"><span class="pageLink">TRC</span></th>';
+	}
+	html += '<th id="result_round' + round + '"><span class="pageLink">' + getRoundName(event, round) + '</span></th>';
+	if (round === numCumulative) {
+	    html += '<th id="result_total"><span class="pageLink">Total</span></th>';
+	}
+    }
+    html += '</tr>';
+
+    return html;
+}
+
+/**
+ * Returns a list of table rows representing the current result data.
+ *
+ * @param {string} column    column to sort by
+ */
+function displayResults(column='place') {
+
+    var event = window.curEvent,
+	resultInfo = getSortedResults(window.resultData, event),
+	reverseSort = false;
+
+    if (!resultInfo) {
+	return;
+    }
+
+    if (!window.playerPageId) {
+	// current sort header is underlined
+	$('#resultsTable span.current').removeClass('current');
+	$('#result_' + column + ' span').addClass('current');
+    }
+
+    // create a result row for each player/team
+    var playerIds = resultInfo.playerIds,
+	scoreData = resultInfo.scoreData,
+	playerData = IS_TEAM_EVENT[event] ? window.teamData[event] : window.playerData;
+
+    if (!scoreData) {
+	return;
+    }
+
+    if (column === 'place') {
+	playerIds.sort((a, b) => scoreData[a].rank - scoreData[b].rank);
+    }
+    else if (column === 'player') {
+	playerIds.sort((a, b) => compareNames(getName(a), getName(b)));
+    }
+    else if (column.indexOf('round') === 0) {
+	let round = column.substr(-1, 1);
+	playerIds.sort((a, b) => compareScores(scoreData[a][round], scoreData[b][round]));
+    }
+    else if (column === 'total') {
+	playerIds.sort((a, b) => compareScores(scoreData[a].totalSort, scoreData[b].totalSort));
+    }
+    else if (IS_SCF_EVENT[column.substr(0, 3)]) {
+	let scfEvent = column.substr(0, 3),
+	    round = column.substr(-1, 1);
+
+	let scfEventResultInfo = getSortedResults(scfData[scfEvent], scfEvent),
+	    scfEventScoreData = scfEventResultInfo.scoreData;
+
+	playerIds = scfEventResultInfo.playerIds,
+	playerIds.sort((a, b) => compareScores(scfEventScoreData[a][round], scfEventScoreData[b][round]));
+    }
+
+    if (column === window.sortColumn) {
+	window.reverseSort = !window.reverseSort;
+    }
+    if (window.reverseSort) {
+	playerIds.reverse();
+    }
+    window.sortColumn = column;
+
+    var html = '',
+	division = getDivision(),
+	rounds = getRoundsByDivision(event, division),
+	numCumulative = getRoundsByDivision(event, division, true),
+	tableId = !window.playerPageId ? 'resultsTable' : 'resultsTable-' + event,
+	table = $('#' + tableId).get(0);
+
+    playerIds.forEach(function(playerId, index) {
+
+	    // if we're showing a player, skip everyone else
+	    if (window.playerPageId) {
+		if (IS_TEAM_EVENT[event]) {
+		    var teamMembers = getTeamMembers(window.teamData[event][playerId]);
+		    if (teamMembers.indexOf(window.playerPageId) === -1) {
+			return;
+		    }
+		}
+		else if (playerId !== window.playerPageId) {
+		    return;
+		}
+	    }
+
+	    var rowHtml = '',
+		name = getName(playerId),
+		info = scoreData[playerId],
+		row = table.rows[index + 1] || table.insertRow();
+
+	    rowHtml += '<tr><td>' + info.rank + '</td>';
+	    rowHtml += !window.playerPageId ? '<td>' + name + '</td>' : '';
+
+	    for (var round = 1; round <= rounds; round++) {
+		if (event === 'scf') {
+		    SCF_EVENTS.forEach(function(scfEvent) {
+			    var result = window.scfData[scfEvent].find(res => res.player_id == playerId && res.round == round),
+				score = result ? formatScore(result.score, scfEvent) : '-';
+
+			    rowHtml += '<td>' + score + '</td>';
+			});
+		}
+		rowHtml += '<td>' + formatScore(info[round]) + '</td>';
+		if (round === numCumulative) {
+		    rowHtml += '<td>' + formatScore(info.total) + '</td>';
+		}
+	    }
+	    rowHtml += '</tr>';
+	    row.innerHTML = rowHtml;
+	});
+}
+
+/**
+ * Calculates overall points for each event and shows them for each overall player.
+ *
+ * @param {Array} data     list of results
+ */
+function showOverallResults(data) {
+
+    if (!data) {
+	$('#content').html("No results found.");
+	return;
+    }
+
+    // a score of SCR (-2) does not count for overall points (unless they should be considered to have tied)
+    if (window.tournamentData.scoring_scratches === 'revert') {
+        data = data.filter(result => result.score != -2);
+    }
+
+    // transform results so each result is individual
+    data = flattenResults(data);
+    data = filterResultsByDivision(data, getDivision(), false);
+
+    // if we have SCF, calculate those results from MTA and TRC and add them to our data
+    if (window.eventData['scf']) {
+	window.scfData = {};
+	SCF_EVENTS.forEach(function(scfEvent) {
+		var scfEventId = window.eventData[scfEvent].id;
+		// pull out MTA or TRC data
+		window.scfData[scfEvent] = data.filter(result => result.event_id === scfEventId);
+		// and remove it from our main result list
+		data = data.filter(result => result.event_id !== scfEventId);
+	    });
+	// add generated SCF results to our main list
+	mergeArray(data, getScfData());
+    }
+
+    // figure out which players qualify for the overall by having played a minimum number of events
+    var playerEvents = {};
+    data.forEach(function(result) {
+	    var hash = playerEvents[result.player_id] = playerEvents[result.player_id] || {};
+	    hash[result.event_id] = true;
+	});
+
+    var overallPlayerIds = Object.keys(playerEvents).filter(playerId => Object.keys(playerEvents[playerId]).length >= window.tournamentData.min_events),
+	overallPlayerIdHash = toLookupHash(overallPlayerIds),
+	overallPointsByEvent = window.overallPointsByEvent = {},
+	overallPointsByPlayer = window.overallPointsByPlayer = {},
+	events = normalizeEvents(Object.keys(window.eventData));
+
+    data = data.filter(result => !!overallPlayerIdHash[result.player_id]);
+
+    // calculate overall points for each event
+    events.forEach(function(event) {
+
+	    overallPointsByEvent[event] = {};
+	    window.curEvent = event;
+
+	    // filter results to include just overall players for this event
+	    var eventResults = data.filter(result => result.event_id === window.eventData[event].id),
+		resultInfo = getSortedResults(eventResults, event);
+
+	    if (resultInfo && resultInfo.playerIds && resultInfo.playerIds.length) {
+		overallPointsByEvent[event] = getOverallPoints(resultInfo, event);
+
+		for (var playerId in overallPointsByEvent[event]) {
+		    overallPointsByPlayer[playerId] = overallPointsByPlayer[playerId] || 0;
+		    overallPointsByPlayer[playerId] += overallPointsByEvent[event][playerId];
+		}
+	    }
+	});
+
+    // create the results table and its header row
+    var playerHeader = !window.playerPageId ? '<th id="overall_player"><span class="pageLink">Player</span></th>' : '',
+	html = '<table class="resultsTable" id="overallResultsTable"><tr><th id="overall_place"><span class="pageLink">Place</span></th>' + playerHeader;
+
+    events.forEach(function(event) {
+	    html += '<th id="overall_' + event + '"><span class="pageLink">' + capitalizeEvent(event) + '</span></th>';
+	});
+    html += '<th id="overall_total"><span class="pageLink">Total</span></th></tr>';
+    html += '</table>';
+
+    // ship it!
+    $('#content').append(html);
+    displayOverallResults();
+
+    // add sort handlers
+    $('#overallResultsTable th span').click(sortResults);
+}
+
+/**
+ * Returns only the results that should be considered for overall points.
+ *
+ * @param {Array}  data      a list of results
+ * @param {string} event     event name
+ */
+function getOverallResultsByEvent(data, event) {
+
+    return data.filter(function(result) {
+	    // we only want results for this event
+	    if (result.event_id !== window.eventData[event].id) {
+		return false;
+	    }
+	    // make sure only overall players are included
+	    return !!idHash[result.player_id];
+	});
+}
+
+/**
+ * Displays overall results sorted by the given column.
+ *
+ * @param {string} column    column to sort on (defaults to 'place')
+ */
+function displayOverallResults(column='place') {
+
+    // current sort header is underlined
+    if (!window.playerPageId) {
+	$('#overallResultsTable span.current').removeClass('current');
+	$('#overall_' + column + ' span').addClass('current');
+    }
+
+    // sort players based on column
+    var playerIds = Object.keys(window.overallPointsByPlayer);
+    if (column === 'place' || column === 'total') {
+	playerIds.sort((a, b) => window.overallPointsByPlayer[b] - window.overallPointsByPlayer[a]);
+    }
+    else if (column === 'player') {
+	playerIds.sort((a, b) => compareNames(window.playerData[a].name, window.playerData[b].name));
+    }
+    else {
+	playerIds.sort((a, b) => (window.overallPointsByEvent[column][b] || 0) - (window.overallPointsByEvent[column][a] || 0));
+    }
+
+    if (column === window.sortColumn) {
+        window.reverseSort = !window.reverseSort;
+    }
+    if (window.reverseSort) {
+        playerIds.reverse();
+    }
+    window.sortColumn = column;
+
+    var events = normalizeEvents(Object.keys(window.eventData)),
+	curPlace = 1,
+	curPoints = -1,
+	table = $('#overallResultsTable').get(0);
+
+    // create a result row for each overall player
+    playerIds.forEach(function(playerId, index) {
+
+	    if (window.playerPageId && window.playerPageId !== playerId) {
+		return;
+	    }
+	    
+	    var html = '',
+		name = window.playerData[playerId].name,
+		row = table.rows[index + 1] || table.insertRow();
+
+	    if (window.overallPointsByPlayer[playerId] !== curPoints) {
+		curPlace = index + 1;
+	    }
+	    curPoints = window.overallPointsByPlayer[playerId];
+
+	    html += '<td>' + curPlace + '</td>';
+	    if (!window.playerPageId) {
+		html += '<td>' + name + '</td>';
+	    }
+
+	    events.forEach(function(event) {
+		    html += '<td>' + (window.overallPointsByEvent[event][playerId] || '0') + '</td>';
+		});
+
+	    html += '<td>' + window.overallPointsByPlayer[playerId] + '</td>';
+	    row.innerHTML = html;
+	});
+}
+
+/**
+ * This function is super-important.
+ *
+ * Analyzes a set of results and returns data about it. The primary task is to determine the order in
+ * which to rank players based on scores. A score in a later round is better than any score in an
+ * earlier round. We also need to handle events that have cumulative rounds. If we have scores for
+ * all an event's cumulative rounds, calculate an additional result with the total score. Note that
+ * the results are ordered by round.
+ *
+ * @param {Array}  data      a list of results
+ * @param {string} event     event name
+ *
+ * @return {object} scoring data
+ */
+function getSortedResults(data, event) {
+
+    if (!data || !data.length) {
+	return {};
+    }
+
+    // figure out how many rounds we have results for, and get a list of player IDs that have results
+    var numRounds = Math.max.apply(Math, data.map(result => result.round)),
+	division = getDivision(),
+	numCumulative = getRoundsByDivision(event, division, true),
+	playerIds = uniquify(data.map(result => result.player_id)),
+	scoreData = {};
+
+    // generate score data: number of rounds per player, latest round, and total if event is cumulative
+    data.forEach(function(result) {
+
+	    let p = result.player_id,
+		round = Number(result.round),
+		score = Number(result.score);
+
+	    scoreData[p] = scoreData[p] || {};
+	    scoreData[p][round] = score;
+	    scoreData[p].numRounds = scoreData[p].numRounds || 0;
+	    scoreData[p].numRounds++;
+
+	    scoreData[p].latest = Math.max(scoreData[p].latest || 0, round);
+
+	    let adjScore = score < 0 ? (LOWER_IS_BETTER[event] ? score * -1000 : score * 1000) : score;
+
+	    if (round === 1 && numCumulative > 1) {
+		scoreData[p].total = Math.max(score, 0);
+		scoreData[p].totalSort = adjScore;
+	    }
+
+	    if (round > 1 && round <= numCumulative) {
+		scoreData[p].total += Math.max(score, 0);
+		scoreData[p].totalSort += adjScore;
+	    }
+	});
+
+    // sort by score; a score in a later round beats any score from a previous round
+    playerIds.sort(function(a, b) {
+
+	    let latestA = scoreData[a].latest,
+		latestB = scoreData[b].latest;
+
+	    // latest round played is primary sort key
+	    if (latestA !== latestB) {
+		return latestB - latestA;
+	    }
+
+	    // score is secondary sort key
+	    let scoreA = (latestA <= numCumulative) ? scoreData[a].totalSort :  scoreData[a][latestA],
+		scoreB = (latestB <= numCumulative) ? scoreData[b].totalSort :  scoreData[b][latestB];
+
+	    let cmp = compareScores(scoreA, scoreB);
+	    return cmp === 0 ? compareNames(getName(a), getName(b)) : cmp;
+	});
+
+    // assign ranks
+    var curRound, curScore, curRank;
+    playerIds.forEach(function(playerId, index) {
+	    
+	    let latest = scoreData[playerId].latest,
+		score = (latest <= numCumulative) ? scoreData[playerId].totalSort :  scoreData[playerId][latest],
+		numRounds = scoreData[playerId].numRounds;
+
+	    if (latest !== curRound || score !== curScore) {
+		curRank = index + 1;
+	    }
+	    scoreData[playerId].rank = curRank;
+	    curRound = latest;
+	    curScore = score;
+	});
+
+    return { numRounds: numRounds,
+	     playerIds: playerIds,
+	     scoreData: scoreData };
+}
+
+/**
+ * Calculates overall points for the given event.
+ *
+ * @param {object} resultInfo    helpful result info
+ * @param {string} event         event name
+ */
+function getOverallPoints(resultInfo, event) {
+
+    var ranks = {},
+	points = {},
+        overallPoints = {};
+
+    resultInfo.playerIds.forEach(function(playerId) {
+	    var rank = resultInfo.scoreData[playerId].rank;
+	    ranks[rank] = ranks[rank] || 0;
+	    ranks[rank]++;
+	});
+
+    var base,
+	rankNums = Object.keys(ranks).map(rank => Number(rank));
+
+    if (window.tournamentData.scoring === 'countdown') {
+        base = getCountdownBaseByDivision(getDivision());
+    } else {
+	base = Math.max(...rankNums) + 1;
+    }
+
+    // if we're awarding full points to the team event winners, up the base
+    if (IS_TEAM_EVENT[event] && window.tournamentData['scoring_team'] === 'full') {
+	var num = Object.keys(resultInfo.scoreData).filter(playerId => resultInfo.scoreData[playerId].rank == 1).length;
+	base += 0.5 * (num - 1);
+    }
+
+    rankNums.forEach(function(rank) {
+	    let pts = 0,
+		num = ranks[rank];
+	
+	    if (num) {
+		for (var i = 0; i < num; i++) {
+		    pts = pts + Math.max((base - (Number(rank) + i - 1)), 0);
+		}
+		points[rank] = pts / num;
+	    }
+	});
+
+    resultInfo.playerIds.forEach(playerId => overallPoints[playerId] = Math.max(points[resultInfo.scoreData[playerId].rank], 0));
+
+    return overallPoints;
+}
+
+/**
+ * Converts each of the team results into a set of individual results.
+ *
+ * @param {Array} results     list of results
+ */
+function flattenResults(results) {
+
+    results = results || [];
+
+    var flattened = [],
+	division = getDivision();
+
+    var hasMixed = {};
+    TEAM_EVENTS.forEach(event => hasMixed[event] = hasMixedTeam(event, division));
+
+    let testFunc = isWomenDivision() ? isWomenDivision : isJuniorDivision;
+
+    results.forEach(function(result) {
+	    var event = window.eventById[result.event_id].name,
+		isTeamEvent = IS_TEAM_EVENT[event];
+	    
+	    if (isTeamEvent) {
+		var team = window.teamData[event][result.player_id],
+		    mixedTeamScoring = hasMixed[event] && window.tournamentData.mixed_team_scoring;
+
+		// mixed team event - see if points are only awarded in Open
+		if (mixedTeamScoring === 'none') {
+		    return;
+		}
+	
+		if (team) {
+		    var members = getTeamMembers(team);
+
+		    // mixed team event - points awarded only if entire team is within division
+		    if (mixedTeamScoring === 'division') {
+			if (teamIsMixed(team, testFunc)) {
+			    return;
+			}
+		    }
+
+		    members.forEach(function(playerId) {
+			    if (window.playerData[playerId] && divisionMatch(window.playerData[playerId].division, division)) {
+				var clone = Object.assign({}, result);
+				clone.player_id = playerId;
+				flattened.push(clone);
+			    }
+			});
+		}
+	    }
+	    else {
+		flattened.push(result);
+	    }
+	});
+
+    return flattened;
+}
+
+/**
+ * Handles a click on a sortable column header in an event or overall results table.
+ *
+ * @param {Event} e    browser event
+ */
+function sortResults(e) {
+
+    var id = $(this).closest('th').prop('id'),
+	isOverall = id.indexOf('overall') === 0,
+	column = id.replace('overall_', '').replace('result_', '');
+
+    if (!column) {
+	return;
+    }
+
+    if (isOverall) {
+	displayOverallResults(column);
+    }
+    else {
+	displayResults(column);
+    }
+}
+
+/**
+ * Special-purpose function to show SCF results since they must be calculated from MTA and TRC.
+ */
+function showScf() {
+
+    var division = getDivision(),
+	mtaRequest = sendRequest('get-results', { event: 'mta', eventId: window.eventData.mta.id, sort: 'round' }),
+	trcRequest = sendRequest('get-results', { event: 'trc', eventId: window.eventData.trc.id, sort: 'round' }),
+	requests = [ mtaRequest, trcRequest ],
+	callbacks = [ handleScfResults.bind(null, 'mta'), handleScfResults.bind(null, 'trc') ];
+	
+    sendRequests(requests, callbacks).then(showScfResults);
+}
+
+/**
+ * Stores results of an SCF event.
+ *
+ * @param {string} event     SCF event name (MTA or TRC)
+ * @param {Array}  data      a list of results
+ */
+function handleScfResults(event, data) {
+
+    data = filterResultsByDivision(data, getDivision());
+    window.scfData = window.scfData || {};
+    window.scfData[event] = data || {};
+}
+
+/**
+ * Calculates SCF scores and returns them as results data. Relies on having MTA and TRC results available.
+ */
+function showScfResults() {
+
+    var scfData = getScfData();
+
+    window.curEvent = 'scf';
+    gotResults('scf', scfData);
+}
+
+/**
+ * Creates SCF result objects by combining MTA and TRC scores.
+ */
+function getScfData() {
+
+    // get data references
+    var mtaData = window.scfData.mta,
+	trcData = window.scfData.trc,
+	scfData = [];
+
+    // figure how how many rounds' worth of data we have
+    var numRounds = Math.max(Math.max.apply(Math, mtaData.map(result => result.round)),
+			     Math.max.apply(Math, trcData.map(result => result.round)));
+
+    // get a list of all the players with an SCF result
+    var playerIds = mtaData.map(result => result.player_id),
+	trcPlayerIds = trcData.map(result => result.player_id);
+
+    mergeArray(playerIds, trcPlayerIds);
+    playerIds = uniquify(playerIds).sort((a, b) => Number(a) - Number(b));
+
+    // calculate the SCF result for each player in each round
+    for (var round = 1; round <= numRounds; round++) {
+	playerIds.forEach(function(playerId) {
+		var mtaResult = mtaData.find(result => result.round == round && result.player_id == playerId),
+		    trcResult = trcData.find(result => result.round == round && result.player_id == playerId),
+		    mtaScore = mtaResult && mtaResult.score > 0 ? Number(mtaResult.score) : 0,
+		    trcScore = trcResult && trcResult.score > 0 ? Number(trcResult.score) : 0,
+		    scfScore = (mtaScore * 5.5) + trcScore;
+
+		if (mtaResult || trcResult) {
+		    // take best of SCR/NC
+		    if (scfScore === 0) {
+			scfScore = Math.max(mtaResult ? mtaResult.score : -2, trcResult ? trcResult.score : -2);
+		    }
+		    var scfResult = {
+			event_id: window.eventData.scf.id,
+			player_id: playerId,
+			round: round,
+			score: scfScore
+		    }
+		    scfData.push(scfResult);
+		}
+	    });
+    }
+
+    return scfData;
+}
+
+/**
+ * Takes the user to the player page for the clicked player.
+ */
+function goToPlayerPage(e) {
+
+    var id = $(this).closest('[data-id]').data('id');
+    window.location = "player.html?id=" + id;
+}
+
+function hasMixedTeam(event, division) {
+
+    if (tournamentData.mixed_team.indexOf(event) === -1) {
+	return false;
+    }
+
+    division = division || getDivision();
+    let isWomen = isWomenDivision(division),
+	isJunior = isJuniorDivision(division);
+
+    if (!isWomen && !isJunior) {
+	return false;
+    }
+
+    let testFunc = isWomen ? isWomenDivision : isJuniorDivision,
+	hasMixed = false;
+
+    for (let teamId in window.teamData[event]) {
+	if (teamIsMixed(window.teamData[event][teamId], testFunc)) {
+	    hasMixed = true;
+	    break;
+	}
+    }
+
+    return hasMixed;
+}
+
+function teamIsMixed(team, testFunc) {
+
+    let playerIds = getTeamMembers(team),
+	hasDivMember = playerIds.findIndex(id => testFunc(window.playerData[id].division)) !== -1,
+	hasOtherMember = playerIds.findIndex(id => !testFunc(window.playerData[id].division)) !== -1;
+
+    return hasDivMember && hasOtherMember;
+}
+
+/**
+ * Exports the current results as a PDF file.
+ */
+function exportResults() {
+
+    var tableId = 'resultsTable';
+    if (window.curPage === 'overall') {
+	tableId = 'overallResultsTable';
+    }
+    else if (window.curPage === 'players') {
+	tableId = 'playerListTable';
+    }
+
+    if ($('#' + tableId + ' tr').length === 0) {
+	showNotification("No results to export");
+	return;
+    }
+
+    var doc = new jsPDF(),
+	elem = $('#' + tableId).get(0),
+	res = doc.autoTableHtmlToJson(elem);
+
+    var title = $('.title').text() + ': ' + $('#subtitle').text(),
+	fileName = title.replace("'s", '').replace(/[^\w]+/g, '-') + '.pdf';
+
+    doc.text(title, 14, 16);
+    doc.autoTable(res.columns, res.data, { startY: 20, theme: 'grid' });
+    doc.setProperties({ title: title });
+    doc.save(fileName);
+}
+
+
+
+/***************************************/
+/*     player.html                     */
+/***************************************/
+
+/**
+ * Displays a results page for a single player. Since we want to show what place they got in each event,
+ * we need all the results.
+ */
+function showPlayerPage() {
+
+    setSubtitle();
+
+    var td = window.tournamentData;
+    document.title = td.start.substr(0, td.start.indexOf('-')) + ' ' + td.name + ': ' + window.playerData[window.playerPageId].name;
+
+    sendRequest("get-results", { tournamentId: window.tournamentId, sort: 'round' }, gotPlayerResults);
+}
+
+/**
+ * Displays player result data. Uses most of the code to display tournament results, which varys
+ * in places based on window.playerPageId.
+ *
+ * @param {Array}  data      a list of results
+ */
+function gotPlayerResults(data) {
+
+    var player = playerData[window.playerPageId],
+	events = normalizeEvents(Object.keys(window.eventData));
+
+    // for filtering results
+    window.division = player.division.substr(0, 1);
+
+    var flattenedResults = flattenResults(data),
+	playerResults = flattenedResults.filter(result => result.player_id == window.playerPageId),
+	playerEventResults = {},
+	hasScf = events.indexOf('scf') !== -1;
+
+    if (playerResults) {
+	playerResults.forEach(result => {
+		if (result.score > -2) {
+		    let event = window.eventById[result.event_id].name;
+		    if (hasScf && IS_SCF_EVENT[event]) {
+			event = 'scf';
+		    }
+		    playerEventResults[event] = true;
+		}
+	    });
+    }
+    else {
+	$('#content').html("No results found.");
+    }
+
+    events = events.filter(event => !!playerEventResults[event]);
+    if (events.length >= window.tournamentData['min_events']) {
+	events.unshift('overall');
+    }
+
+    events.forEach(function(event) {
+
+	    window.curEvent = event;
+	    window.curEventId = window.eventData && window.eventData[event] && window.eventData[event].id;
+
+	    // filter the results to just include the event
+	    var eventId = window.curEventId,
+		eventData = (event !== 'overall') ? data.filter(result => result.event_id === eventId) : data,
+		eventLink = "tournament.html?id=" + window.tournamentId + "&page=" + event;
+	       
+	    // show a little header (can't use a single table since events have different rounds)
+	    var extra = IS_TEAM_EVENT[event] ? ' (with ' + getPartners(window.playerPageId, event) + ')' : '',
+		html = '<div class="eventTitle" id="player-' + event + '"><a href="' + eventLink + '">' + capitalizeEvent(event) + extra + '</a></div>';
+	    $('#content').append(html);
+
+	    // pass data to the display function so it doesn't get fetched again
+  	    showPage(event, eventData);
+        });
+}

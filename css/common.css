@@ -1,0 +1,80 @@
+.tournamentNote {
+  text-align: center;
+  font-style: italic;
+}
+
+.playerListHeader, .playerEventHeader {
+  font-weight: bold;
+  font-size: 1.3rem;
+  margin: 1rem 0 1rem 2rem;
+}
+
+.playerListTable td {
+  padding: .5rem 2rem;
+}
+
+#submitButton {
+  margin-top: 2rem;
+}
+
+#notification {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  color: #FF00FF;
+  font-size: 1rem;
+  margin-top: .5rem;
+}
+
+.chooser label, .chooser span {
+  font-size: 1.3rem;
+}
+
+.chooser div {
+  display: inline-block;
+  margin-right: 2rem;
+}
+
+.chooser {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+#exportButton {
+  display: inline-block;
+}
+
+.resultsTable th, .resultsTable td {
+  padding: .3rem 1.5rem;
+  text-align: center;
+}
+
+.resultsTable th:nth-child(-n+2), .resultsTable td:nth-child(-n+2) {
+  text-align: left;
+}
+
+.acronym {
+  text-align: center;
+  opacity: .8;
+}
+
+.acronym .big {
+  font-size: 1.8rem;
+}
+
+.acronym .small {
+  font-size: 1rem;
+}
+
+.hint {
+  opacity: .5;
+  font-size: 1rem;
+}
+
+#showAll {
+  margin-left: 2rem;
+}
+
+#showAllLabel {
+  font-size: 1rem;
+}

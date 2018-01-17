@@ -1,0 +1,9 @@
+.playerListTable .playerName {
+  color: #666;
+  cursor: pointer;
+}
+
+.eventTitle a {
+  color: #666;
+  text-decoration: none;
+}
