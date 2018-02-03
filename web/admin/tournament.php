@@ -22,9 +22,9 @@ elog(LOG_INFO, "post to tournament.php, edit mode: " . $tournamentId);
 
 $textFields = array('name', 'td_name', 'td_email', 'password', 'location', 'url', 'divisions', 'pools', 'note', 'scoring', 'scoring_team', 'freestyle_team', 'countdown_base', 'mixed_team', 'mixed_team_scoring', 'scoring_scratches');
 $numericFields = array('min_events');
-$booleanFields = array('junior_scoring');
+$booleanFields = array('test', 'junior_scoring_separate');
 $dateFields = array('start', 'end');
-$allFields = array_merge($textFields, $numericFields, $dateFields);
+$allFields = array_merge($textFields, $numericFields, $booleanFields, $dateFields);
 
 if ($tournamentId) {
 
@@ -35,12 +35,6 @@ if ($tournamentId) {
   foreach ($allFields as $f) {
     $formVal = getValue($f, get_input($f, 'post'));
     $curVal = getValue($f, $result[$f]);
-    //    if ($f == 'password') {
-    //      continue;
-    //    }
-    if ($f == 'password' && $formVal != '') {
-      $formVal = get_password_hash($formVal);
-    }
     if ($debug) {
       elog(LOG_INFO, $f . ": comparing form val [" . $formVal . "] to cur val [" . $curVal . "]");
     }
@@ -122,8 +116,6 @@ else {
     array_push($keys, $key);
     array_push($values, $value);
   }
-  array_push($keys, 'test');
-  array_push($values, strpos(strtolower($data['name']), 'test') !== false ? 'true' : 'false');
   $sql = "INSERT INTO tournament(" . implode(',', $keys) . ") VALUES (" . implode(',', $values) . ")";
   $tournamentId = db_query($sql);
   set_auth($tournamentId);
@@ -141,19 +133,19 @@ die();
 
 function getValue($f, $val) {
 
-  global $dateFields, $numericFields, $booleanFields;
+  global $textFields, $dateFields, $numericFields, $booleanFields;
 
   //  elog(LOG_INFO, "getValue $f $val");
-  $isText = !in_array($f, $numericFields) && in_array($f, $booleanFields);
+  $isText = in_array($f, $textFields);
   if (!$val) {
     $val = $isText ? '' : '0';
   }
   else if (is_array($val)) {
     $val = implode(',', $val);
   }
-  //  else if ($f == 'password') {
-  //    $val = get_password_hash($val);
-  //  }
+  else if ($f == 'password') {
+    $val = get_password_hash($val);
+  }
   else if (in_array($f, $dateFields)) {
     $val = date("Y-m-d", strtotime($val));
   }

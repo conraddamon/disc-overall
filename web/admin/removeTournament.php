@@ -46,12 +46,14 @@ else {
   echo "<div>Removed $count players</div>";
   $sql = "SELECT * FROM `event` WHERE tournament_id=$tournamentId AND (name='ddc' OR name='freestyle')";
   $result = db_query($sql);
-  foreach ($result as $r) {
-    $eventName = $r['name'];
-    $eventId = $r['id'];
-    $sql = "DELETE FROM team WHERE event_id=$eventId";
-    $count = db_query($sql);
-    echo "<div>Removed $count $eventName teams</div>";
+  if ($result) {
+    foreach ($result as $r) {
+      $eventName = $r['name'];
+      $eventId = $r['id'];
+      $sql = "DELETE FROM team WHERE event_id=$eventId";
+      $count = db_query($sql);
+      echo "<div>Removed $count $eventName teams</div>";
+    }
   }
   $sql = "DELETE FROM event WHERE tournament_id=$tournamentId";
   $count = db_query($sql);

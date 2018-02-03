@@ -41,10 +41,6 @@ function initializeTournamentAdmin(tournamentData) {
 	$('#addPlayer').click(handlePlayerAdd);
 	$('#editWarning').show();
 	$('#tournamentId').val(tournamentId); // save in hidden form field
-	if (tournamentData.password) {
-	    //	    $('#passwordContainer').hide();
-	}
-
 	$('#removePlayerDialog').dialog({
 		autoOpen: false,
 		modal: true,
@@ -105,6 +101,11 @@ function handleTournamentInfo(data) {
 
 	if (field === 'mixed_team_scoring') {
 	    $('#mixed_team_scoring_' + value).prop('checked', true);
+	    continue;
+	}
+
+	if (field === 'test' || field === 'junior_scoring_separate') {
+	    $('#' + field).prop('checked', value == 1);
 	    continue;
 	}
 

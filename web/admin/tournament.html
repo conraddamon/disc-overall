@@ -13,25 +13,39 @@ require_once('util.php');
 require_once('auth.php');
 require_once('overall.php');
 
+$logout = get_input('logout', 'get');
+if ($logout) {
+   clear_auth();
+}
+
 $tournamentId = get_input('id', 'get');
 $title = 'Tournament Setup';
 $header = '<div class="title">Set Up an Overall Tournament</div>';
 $links = '';
 $hideForm = '';
 if ($tournamentId) {
-   include 'overall_auth.php';
-   $jsonTournamentData = json_encode($tournamentData);
-   $title = getTournamentTitle($tournamentData);
-   $header = getTournamentHeader($tournamentData);
-   $hideForm = 'style=display:none';
-   $links = <<< EOF
+   $sql = "SELECT * FROM tournament WHERE id=$tournamentId";
+   $tournamentData = db_query($sql, 'one');
+   if ($tournamentData) {
+     include 'overall_auth.php';
+     $jsonTournamentData = json_encode($tournamentData);
+     $title = getTournamentTitle($tournamentData);
+     $header = getTournamentHeader($tournamentData);
+     $hideForm = 'style=display:none';
+     $links = <<< EOF
 <div class="pageLinks">
   [ <a href="../tournament.html?id=$tournamentId" class="pageLink">Tournament page</a> ]
   [ <a href="teams.html?id=$tournamentId" class="pageLink">Assign teams</a> ]
   [ <a href="results.html?id=$tournamentId" class="pageLink">Enter results</a> ]
   [ <a href="javascript:enableEdit();" class="pageLink">Edit tournament</a> ]
+  [ <a href="./tournament.html?logout=1" class="pageLink">Logout</a> ]
 </div>
 EOF;
+  }
+  else {
+    echo "Tournament with ID of " . $tournamentId . " not found.";
+    exit();
+  }    
 }
 
 echo <<< EOF
@@ -126,6 +140,10 @@ function launch() {
 	  <div><label for="note" class="textLabel">Note:</label></div>
 	  <div><textarea rows="3" id="note" name="note" tabIndex=0></textarea></div>
 	  <div class="note">A brief description or note that will appear on the tournament page</div>
+	</li>
+	<li>
+	  <div><label for="test">Just testing:</label></div>
+	  <div><input name="test" type="checkbox" id="test" tabIndex=0 /></div>
 	</li>
       </ul>
     </div>
