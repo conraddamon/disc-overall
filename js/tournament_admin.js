@@ -87,9 +87,10 @@ function handleTournamentInfo(data) {
 	    continue;
 	}
 
-	if (field === 'freestyle_team') {
+	if (field === 'ddc_team' || field === 'freestyle_team') {
+	    let ev = field.replace('_team', '');
 	    value = value || '2';
-	    [ '2', '3' ].forEach(num => $('#freestyle' + num).prop('checked', value.indexOf(num) !== -1));
+	    [ '1', '2', '3' ].forEach(num => $('#' + ev + num).prop('checked', value.indexOf(num) !== -1));
 	    continue;
 	}
 
@@ -123,6 +124,11 @@ function handleTournamentInfo(data) {
 
 	// text fields are named after DB column
 	$('#' + field).val(value);
+    }
+
+    // can't have mixed teams of one player
+    if (data['ddc_team'] === '1' && data['freestyle_team'] === '1') {
+	$('#mixed_team_inputs').hide();
     }
 
     // now that we have data, update the scoring details

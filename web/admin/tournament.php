@@ -12,7 +12,7 @@ require_once('log.php');
 require_once('util.php');
 require_once('auth.php');
 
-$debug = false;
+$debug = true;
 $db_no_writes = $debug;
 #var_dump($_POST);
 
@@ -20,7 +20,7 @@ $tournamentId = get_input('tournamentId', 'post');
 $editMode = ($tournamentId > 0);
 elog(LOG_INFO, "post to tournament.php, edit mode: " . $tournamentId);
 
-$textFields = array('name', 'td_name', 'td_email', 'password', 'location', 'url', 'divisions', 'pools', 'note', 'scoring', 'scoring_team', 'freestyle_team', 'countdown_base', 'mixed_team', 'mixed_team_scoring', 'scoring_scratches');
+$textFields = array('name', 'td_name', 'td_email', 'password', 'location', 'url', 'divisions', 'pools', 'note', 'scoring', 'scoring_team', 'ddc_team', 'freestyle_team', 'countdown_base', 'mixed_team', 'mixed_team_scoring', 'scoring_dns', 'scoring_scratches');
 $numericFields = array('min_events');
 $booleanFields = array('test', 'junior_scoring_separate');
 $dateFields = array('start', 'end');
@@ -34,11 +34,17 @@ if ($tournamentId) {
   $update = array();
   foreach ($allFields as $f) {
     $formVal = getValue($f, get_input($f, 'post'));
-    $curVal = getValue($f, $result[$f]);
+    //    $curVal = getValue($f, $result[$f]);
+    $curVal = $result[$f];
+    $isText = in_array($f, $textFields);
     if ($debug) {
       elog(LOG_INFO, $f . ": comparing form val [" . $formVal . "] to cur val [" . $curVal . "]");
     }
-    if ($formVal != $curVal) {
+    if ($f == 'password' && empty($formVal)) {
+      continue;
+    }
+    if ($formVal !== $curVal) {
+      elog(LOG_INFO, "testing $f");
       if (!$formVal) {
 	$formVal = $isText ? '' : '0';
       }
@@ -72,7 +78,7 @@ if ($tournamentId) {
     $isFormEvent = in_array($event, $formEvents);
     $eventId = $eventData[$event]['id'];
     $isActive = $eventData[$event]['active'] == '1' ? true : false;
-    elog(LOG_INFO, "Event: " . $event . ' active: ' . $isActive);
+    //    elog(LOG_INFO, "Event: " . $event . ' active: ' . $isActive);
     if (!$isDbEvent && $isFormEvent) {
       addEvent($event);
     }
@@ -89,7 +95,7 @@ if ($tournamentId) {
 	$formVal = get_input($event . '_' . $prop, 'post');
 	$formVal = !empty($formVal) ? $formVal : 0;
 	if ($debug) {
-	  elog(LOG_INFO, $event . '_' . $prop . " db val: " . $eventData[$event][$prop] . ', form val: ' . $formVal);
+	  //	  elog(LOG_INFO, $event . '_' . $prop . " db val: " . $eventData[$event][$prop] . ', form val: ' . $formVal);
 	}
 	if ($eventData[$event][$prop] != $formVal) {
 	  array_push($eventUpdate, $prop . '=' . quote($formVal));
@@ -135,7 +141,7 @@ function getValue($f, $val) {
 
   global $textFields, $dateFields, $numericFields, $booleanFields;
 
-  //  elog(LOG_INFO, "getValue $f $val");
+  //elog(LOG_INFO, "getValue $f $val");
   $isText = in_array($f, $textFields);
   if (!$val) {
     $val = $isText ? '' : '0';
@@ -153,7 +159,7 @@ function getValue($f, $val) {
     $val = !!$val;
   }
 
-  //  elog(LOG_INFO, "value is now $val");
+  //elog(LOG_INFO, "value is now $val");
   return $val;
 }
 

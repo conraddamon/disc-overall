@@ -7,6 +7,7 @@ const DIV_MAP = { 'O': [ 'open', 'men', 'male' ],
 		  'J': [ 'junior', 'jr' ] };
 
 const DIV_MAP_ORDER = [ 'O', 'W', 'S', 'L', 'J', 'G', 'M' ];
+const DEFAULT_DIV = 'O';
 
 const DIV_WORDS = [];
 Object.values(DIV_MAP).forEach(function(a) { mergeArray(DIV_WORDS, a); });
@@ -107,7 +108,7 @@ function parseCSV() {
 	    var firstName = firstNameCol && fields[firstNameCol - 1],
 		lastName = lastNameCol && fields[lastNameCol - 1],
 		fullName = fullNameCol && fields[fullNameCol - 1],
-		division = divisionCol && fields[divisionCol - 1],
+		division = (divisionCol && fields[divisionCol - 1]) || DEFAULT_DIV,
 		nameIdx;
 
 	    var name = fullName || (firstName && lastName) ? [ firstName, lastName ].join(' ') : '';

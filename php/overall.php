@@ -80,6 +80,9 @@ function getAdminLinks($dir='.') {
   if (strpos($page, 'tutorial') === false) {
     $text .= "[ <a href='$dir/tutorial/' class='pageLink'>Tutorial</a> ]";
   }
+  if (strpos($page, 'tournament') === false) {
+    $text .= "[ <a href='$dir/tournament.html' class='pageLink'>New tournament</a> ]";
+  }
   return "<div class='pageLinks'>$text</div>";
 }
 

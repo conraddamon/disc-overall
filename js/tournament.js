@@ -76,6 +76,9 @@ function handleTournamentInfo(data) {
 	delete DIV_MATCH['W']['WJ'];
 	//	DIV_MATCH['OM'] = DIV_MATCH['OGM'] = DIV_MATCH['OSGM'] = DIV_MATCH['WM'] = DIV_MATCH['WGM'] = DIV_MATCH['WSGM'] = null;
     }
+    for (var param in window.qs) {
+	window.tournamentData[param] = window.qs[param];
+    }
 }
 
 function getTeamInfo() {
@@ -301,8 +304,7 @@ function getResultsHeader() {
 function displayResults(column='place') {
 
     var event = window.curEvent,
-	resultInfo = getSortedResults(window.resultData, event),
-	reverseSort = false;
+	resultInfo = getSortedResults(window.resultData, event);
 
     if (!resultInfo) {
 	return;
@@ -317,7 +319,7 @@ function displayResults(column='place') {
     // create a result row for each player/team
     var playerIds = resultInfo.playerIds,
 	scoreData = resultInfo.scoreData,
-	playerData = IS_TEAM_EVENT[event] ? window.teamData[event] : window.playerData;
+	playerData = isTeamEvent(event) ? window.teamData[event] : window.playerData;
 
     if (!scoreData) {
 	return;
@@ -366,7 +368,7 @@ function displayResults(column='place') {
 
 	    // if we're showing a player, skip everyone else
 	    if (window.playerPageId) {
-		if (IS_TEAM_EVENT[event]) {
+		if (isTeamEvent(event)) {
 		    var teamMembers = getTeamMembers(window.teamData[event][playerId]);
 		    if (teamMembers.indexOf(window.playerPageId) === -1) {
 			return;
@@ -465,7 +467,18 @@ function showOverallResults(data) {
 		resultInfo = getSortedResults(eventResults, event);
 
 	    if (resultInfo && resultInfo.playerIds && resultInfo.playerIds.length) {
-		overallPointsByEvent[event] = getOverallPoints(resultInfo, event);
+
+		// we need to know about non-participants if they split points
+		if (window.tournamentData.scoring_dns === 'tie' || window.tournamentData.scoring === 'place') {
+		    var nonParticipants = overallPlayerIds.filter(id => !resultInfo.scoreData[id]),
+			numParticipants = resultInfo.playerIds.length;
+
+		    nonParticipants.forEach(function(id) {
+			    resultInfo.playerIds.push(id);
+			    resultInfo.scoreData[id] = { rank: numParticipants + 1, dns: true };
+			});
+		}
+		overallPointsByEvent[event] = getOverallPoints(resultInfo, event, overallPlayerIds.length);
 
 		for (var playerId in overallPointsByEvent[event]) {
 		    overallPointsByPlayer[playerId] = overallPointsByPlayer[playerId] || 0;
@@ -535,6 +548,10 @@ function displayOverallResults(column='place') {
 	playerIds.sort((a, b) => (window.overallPointsByEvent[column][b] || 0) - (window.overallPointsByEvent[column][a] || 0));
     }
 
+    if (window.tournamentData.scoring === 'place' && column !== 'player') {
+	playerIds = playerIds.reverse();
+    }
+
     if (column === window.sortColumn) {
         window.reverseSort = !window.reverseSort;
     }
@@ -557,12 +574,13 @@ function displayOverallResults(column='place') {
 	    
 	    var html = '',
 		name = window.playerData[playerId].name,
-		row = table.rows[index + 1] || table.insertRow();
+		row = table.rows[index + 1] || table.insertRow(),
+		points = window.overallPointsByEvent[column] ? window.overallPointsByEvent[column][playerId] || 0 : window.overallPointsByPlayer[playerId];
 
-	    if (window.overallPointsByPlayer[playerId] !== curPoints) {
+	    if (points !== curPoints) {
 		curPlace = index + 1;
 	    }
-	    curPoints = window.overallPointsByPlayer[playerId];
+	    curPoints = points;
 
 	    html += '<td>' + curPlace + '</td>';
 	    if (!window.playerPageId) {
@@ -573,7 +591,7 @@ function displayOverallResults(column='place') {
 		    html += '<td>' + (window.overallPointsByEvent[event][playerId] || '0') + '</td>';
 		});
 
-	    html += '<td>' + window.overallPointsByPlayer[playerId] + '</td>';
+	    html += '<td>' + window.overallPointsByPlayer[playerId].toFixed(2) + '</td>';
 	    row.innerHTML = html;
 	});
 }
@@ -675,10 +693,10 @@ function getSortedResults(data, event) {
 /**
  * Calculates overall points for the given event.
  *
- * @param {object} resultInfo    helpful result info
- * @param {string} event         event name
+ * @param {object} resultInfo       helpful result info
+ * @param {string} event            event name
  */
-function getOverallPoints(resultInfo, event) {
+function getOverallPoints(resultInfo, event, numOverallPlayers) {
 
     var ranks = {},
 	points = {},
@@ -691,19 +709,26 @@ function getOverallPoints(resultInfo, event) {
 	});
 
     var base,
-	rankNums = Object.keys(ranks).map(rank => Number(rank));
+	rankNums = Object.keys(ranks).map(rank => Number(rank)),
+	scoringMethod = window.tournamentData.scoring,
+	isPlaceScoring = (scoringMethod === 'place'),
+	numPlayers = resultInfo.playerIds.length,
+	fullTeamBonus = 0;
 
-    if (window.tournamentData.scoring === 'countdown') {
+    if (scoringMethod === 'countdown') {
         base = getCountdownBaseByDivision(getDivision());
-    } else {
-	base = Math.max(...rankNums) + 1;
+    }
+    else if (scoringMethod === 'countup') {
+	base = resultInfo.playerIds.length;
     }
 
     // if we're awarding full points to the team event winners, up the base
-    if (IS_TEAM_EVENT[event] && window.tournamentData['scoring_team'] === 'full') {
-	var num = Object.keys(resultInfo.scoreData).filter(playerId => resultInfo.scoreData[playerId].rank == 1).length;
-	base += 0.5 * (num - 1);
+    var fullTeamScoring = isTeamEvent(event) && window.tournamentData['scoring_team'] === 'full';
+    if (fullTeamScoring) {
+	var fullTeamSize = Object.keys(resultInfo.scoreData).filter(playerId => resultInfo.scoreData[playerId].rank == 1).length;
+	fullTeamBonus = 0.5 * (fullTeamSize - 1);
     }
+    base += fullTeamBonus;
 
     rankNums.forEach(function(rank) {
 	    let pts = 0,
@@ -711,13 +736,25 @@ function getOverallPoints(resultInfo, event) {
 	
 	    if (num) {
 		for (var i = 0; i < num; i++) {
-		    pts = pts + Math.max((base - (Number(rank) + i - 1)), 0);
+		    if (isPlaceScoring) {
+			pts += (Number(rank) + i) - fullTeamBonus;
+		    }
+		    else {
+			pts += Math.max((base - (Number(rank) + i - 1)), 0);
+		    }
 		}
-		points[rank] = pts / num;
+		points[rank] = parseFloat((pts / num).toFixed(2));
 	    }
 	});
 
-    resultInfo.playerIds.forEach(playerId => overallPoints[playerId] = Math.max(points[resultInfo.scoreData[playerId].rank], 0));
+    resultInfo.playerIds.forEach(function(playerId) {
+	    if (isPlaceScoring && window.tournamentData.scoring_dns === 'none' && resultInfo.scoreData[playerId].dns) {
+		overallPoints[playerId] = numOverallPlayers + 1;
+	    }
+	    else {
+		overallPoints[playerId] = Math.max(points[resultInfo.scoreData[playerId].rank], 0);
+	    }
+	});
 
     return overallPoints;
 }
@@ -741,9 +778,9 @@ function flattenResults(results) {
 
     results.forEach(function(result) {
 	    var event = window.eventById[result.event_id].name,
-		isTeamEvent = IS_TEAM_EVENT[event];
+		teamEvent = isTeamEvent(event);
 	    
-	    if (isTeamEvent) {
+	    if (teamEvent) {
 		var team = window.teamData[event][result.player_id],
 		    mixedTeamScoring = hasMixed[event] && window.tournamentData.mixed_team_scoring;
 
@@ -1035,7 +1072,7 @@ function gotPlayerResults(data) {
 		eventLink = "tournament.html?id=" + window.tournamentId + "&page=" + event;
 	       
 	    // show a little header (can't use a single table since events have different rounds)
-	    var extra = IS_TEAM_EVENT[event] ? ' (with ' + getPartners(window.playerPageId, event) + ')' : '',
+	    var extra = isTeamEvent(event) ? ' (with ' + getPartners(window.playerPageId, event) + ')' : '',
 		html = '<div class="eventTitle" id="player-' + event + '"><a href="' + eventLink + '">' + capitalizeEvent(event) + extra + '</a></div>';
 	    $('#content').append(html);
 

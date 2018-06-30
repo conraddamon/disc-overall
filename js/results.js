@@ -123,11 +123,11 @@ function handleEventInfo(data) {
 function setupAutocomplete() {
 
     var event = window.curEvent,
-	isTeamEvent = IS_TEAM_EVENT[event],
-	nameList = getNameList(isTeamEvent ? window.teamData[event] : window.playerData),
-	rejectFunc = rejectAutocomplete.bind(null, isTeamEvent);
+	teamEvent = isTeamEvent(event),
+	nameList = getNameList(teamEvent ? window.teamData[event] : window.playerData),
+	rejectFunc = rejectAutocomplete.bind(null, teamEvent);
 
-    addNameAutocomplete(nameList, isTeamEvent ? matchTeam : null, rejectFunc, null, isTeamEvent ? 'team' : 'player');
+    addNameAutocomplete(nameList, teamEvent ? matchTeam : null, rejectFunc, null, teamEvent ? 'team' : 'player');
 }
 
 /**
@@ -224,10 +224,10 @@ function showPage(event) {
     $('#score').val('');
 
     // show either the player or team name entry box as appropriate
-    var isTeamEvent = IS_TEAM_EVENT[event],
+    var teamEvent = isTeamEvent(event),
 	scoreLabel = 'Score:';
 
-    if (isTeamEvent) {
+    if (teamEvent) {
 	$('#playerDiv').hide();
 	$('#teamDiv').show();
 	$('#team').focus();
@@ -271,7 +271,7 @@ function showResults(event) {
 
     sendRequest('get-results', { event: event, eventId: eventId, round: round }, handleResults);
 
-    if (IS_TEAM_EVENT[event]) {
+    if (isTeamEvent(event)) {
 	$('#team').focus();
     }
     else {
@@ -320,8 +320,8 @@ function addResultRow(result, index) {
     // player could be a person or a team
     var html = '',
 	event = window.curEvent,
-	isTeamEvent = IS_TEAM_EVENT[event],
-	divClass = isTeamEvent ? 'teamName' : 'playerName';
+	teamEvent = isTeamEvent(event),
+	divClass = teamEvent ? 'teamName' : 'playerName';
 
     // got a score with decimals, switch that event to decimals mode
     if ((event === 'distance' || event === 'trc') && result.score % 1 !== 0) {
@@ -329,7 +329,7 @@ function addResultRow(result, index) {
     }
 
     var event = window.eventById[result.event_id].name,
-	playerId = isTeamEvent ? teamData[event][result.player_id].player1 : result.player_id,
+	playerId = teamEvent ? teamData[event][result.player_id].player1 : result.player_id,
 	division = window.playerData[playerId].division,
 	currentRecord = window.recordData[event] && window.recordData[event][division];
 
@@ -397,7 +397,7 @@ function handleResultRemoval(resultId) {
 
     var result = window.resultMap[resultId],
 	event = window.curEvent,
-	playerData = IS_TEAM_EVENT[event] ? window.teamData[event] : window.playerData,
+	playerData = isTeamEvent(event) ? window.teamData[event] : window.playerData,
 	player = playerData[result.player_id].name;
 
     // remove this result from our list so it's eligible for autocomplete
@@ -433,12 +433,12 @@ function keyHandler(e) {
 function addScore() {
 
     var event = window.curEvent,
-	isTeamEvent = IS_TEAM_EVENT[event],
+	teamEvent = isTeamEvent(event),
 	eventId = getEventId(),
 	round = getRound(),
-	input = $('#' + (isTeamEvent ? 'team' : 'player')),
+	input = $('#' + (teamEvent ? 'team' : 'player')),
 	scorer = input.val(),
-	scorerId = isTeamEvent ? window.teamId[event][scorer] : window.playerId[scorer],
+	scorerId = teamEvent ? window.teamId[event][scorer] : window.playerId[scorer],
 	rawScore = $('#score').val().trim(),
 	min, sec;
 
@@ -455,7 +455,7 @@ function addScore() {
 
     // player value should always come from autocomplete; make sure they didn't type in something random
     if (!scorerId) {
-	showNotification('Error: ' + scorer + (isTeamEvent ? ' is not a known team' : ' is not registered') + ' in this tournament');
+	showNotification('Error: ' + scorer + (teamEvent ? ' is not a known team' : ' is not registered') + ' in this tournament');
 	return;
     }
 
@@ -487,10 +487,10 @@ function addScore() {
 
     // update player pool if appropriate
     var pool = getPool(),
-	playerData = IS_TEAM_EVENT[event] ? window.teamData[event] : window.playerData,
+	playerData = isTeamEvent(event) ? window.teamData[event] : window.playerData,
 	playerPool = pool && playerData[scorerId].pool;
 
-    if (pool && !isTeamEvent && pool != playerPool) {
+    if (pool && !teamEvent && pool != playerPool) {
 	sendRequest('set-pool', { playerId: scorerId, pool: pool }, function() {
 		window.playerData[scorerId].pool = pool;
 	    });

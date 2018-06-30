@@ -192,6 +192,11 @@ function getTeamName(players) {
     return players.join(' / ');
 }
 
+function isTeamEvent(event) {
+
+    return IS_TEAM_EVENT[event] && window.tournamentData[event + '_team'] != 1;
+}
+
 /**
  * Returns either a player or a team name, depending on the event.
  *
@@ -201,7 +206,7 @@ function getTeamName(players) {
 function getName(id, event) {
 
     event = event || window.curEvent;
-    var playerData = IS_TEAM_EVENT[event] ? window.teamData[event] : window.playerData,
+    var playerData = isTeamEvent(event) ? window.teamData[event] : window.playerData,
 	player = playerData[id];
 
     return player ? player.name : '';
@@ -720,7 +725,7 @@ function filterResultsByDivision(data, division, expandTeams=true) {
     return data.filter(function(result) {
 	    // team is okay if any of its members match the division
 	    var event = window.eventById[result.event_id].name;
-            if (expandTeams && IS_TEAM_EVENT[event] && window.teamData) {
+            if (expandTeams && isTeamEvent(event) && window.teamData) {
                 var members = getTeamMembers(window.teamData[event][result.player_id]);
                 return !!members.find(playerId => divisionMatch(window.playerData[playerId].division, division));
             }
@@ -753,7 +758,7 @@ function filterResultsByPool(data, pool, expandTeams=true) {
     return data.filter(function(result) {
 	    // team is okay if any of its members match the pool
 	    var event = window.eventById[result.event_id].name;
-            if (expandTeams && IS_TEAM_EVENT[event] && window.teamData) {
+            if (expandTeams && isTeamEvent(event) && window.teamData) {
                 var members = getTeamMembers(window.teamData[event][result.player_id]);
                 return !!members.find(playerId => window.playerData[playerId].pool === pool);
             }

@@ -22,6 +22,7 @@ if (!$tournamentId) {
 }
 
 include 'overall_auth.php';
+clear_auth();
 
 echo <<< EOF
 <!doctype html>

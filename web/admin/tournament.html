@@ -16,6 +16,8 @@ require_once('overall.php');
 $logout = get_input('logout', 'get');
 if ($logout) {
    clear_auth();
+   header("Location: http://overalldisc.com/admin/");
+   exit();
 }
 
 $tournamentId = get_input('id', 'get');
@@ -179,7 +181,7 @@ function launch() {
     </div>
 
     <div id="juniorScoringSection">
-      <input type="checkbox" name="juniorScoring" id="juniorScoring" tabIndex=0 value="on"/>
+      <input type="checkbox" name="junior_scoring_separate" id="junior_scoring_separate" tabIndex=0 />
       Keep scoring for juniors separately (they don't compete against Open/Women)
     </div>
 
@@ -273,13 +275,22 @@ function launch() {
 
       <ul class="form">
 	<li>
+	  <div>DDC team is: </div>
+	  <div><input type="radio" name="ddc_team[]" value="1" id="ddc1" tabIndex=0 /></div>
+	  <div><label for="ddc1">1 player</label></div>
+	  <div><input type="radio" name="ddc_team[]" value="2" id="ddc2" checked tabIndex=0 /></div>
+	  <div><label for="ddc2">2 players</label></div>
+	</li>
+	<li>
 	  <div>Freestyle team is: </div>
+	  <div><input type="checkbox" name="freestyle_team[]" value="1" id="freestyle1" tabIndex=0 /></div>
+	  <div><label for="freestyle1">1 player</label></div>
 	  <div><input type="checkbox" name="freestyle_team[]" value="2" id="freestyle2" checked="checked" tabIndex=0 /></div>
 	  <div><label for="freestyle2">2 players</label></div>
 	  <div><input type="checkbox" name="freestyle_team[]" value="3" id="freestyle3" tabIndex=0 /></div>
 	  <div><label for="freestyle3">3 players</label></div>
 	</li>
-	<li>
+	<li id='mixed_team_inputs'>
 	  <div>Allow mixed teams for: </div>
 	  <div><input type="checkbox" name="mixed_team[]" value="ddc" id="mixed_team_ddc" tabIndex=0 /></div>
 	  <div><label for="mixed_team_ddc">DDC</label></div>
@@ -309,6 +320,12 @@ function launch() {
 	  <div></div>
 	  <div class="note">Last place in an event gets 1 point, next to last gets 2 points, and so on up. Skews the overall toward popular events.</div>
 	</li>
+	<li>
+	  <div><input type="radio" name="scoring" value="place" id="scoring_place" tabIndex=0 /></div>
+	  <div><label for="scoring_place">Points by place</label></div>
+	  <div></div>
+	  <div class="note">First place in an event gets 1 point, second gets 2 points, and so on. The overall winner is the player with the fewest points.</div>
+	</li>
       </ul>
       <div class="subheader">Team Events</div>
       <div>
@@ -318,6 +335,15 @@ function launch() {
       <div>
 	<input type="radio" name="scoring_team" value="split" id="scoring_team_split" tabIndex=0 />
 	<label for="scoring_team_split">First place team members split top points as if they had tied. For example, each member of a winning three-player team gets <span class="base2">49</span> points.</label>
+      </div>
+      <div class="subheader">Non-participants</div>
+      <div>
+	<input type="radio" name="scoring_dns" value="tie" id="scoring_dns_tie" tabIndex=0 />
+	<label for="scoring_dns_tie">Players who do not play an event at all are tied and split points.</label>
+      </div>
+      <div>
+	<input type="radio" name="scoring_dns" value="none" id="scoring_dns_none" checked="checked" tabIndex=0 />
+	<label for="scoring_dns_none">Players who do not play an event at all get no points.</label>
       </div>
       <div class="subheader">Scratches</div>
       <div>

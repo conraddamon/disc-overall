@@ -26,7 +26,7 @@ if ($pw) {
 
 // if user did not just login, check auth token in cookie to make sure they're authenticated
 if ($tournamentId && !($authenticated || check_auth_token($tournamentId))) {
-  $loginTarget = getTournamentTitle($tournamentData);
+  $loginTarget = getTournamentTitle($tournamentData ? $tournamentData : $tournamentId);
   include 'login.html';
   die();
 }

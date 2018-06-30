@@ -57,13 +57,15 @@
 
   <div class="subheader">Scoring</div>
 
-  <div class="description">You have a few scoring options, which is a few more than I have. Some are better than others (I am what they call opinionated software). The first thing to choose is your scoring method. The "countdown" method awards a set number of overall points for first place in an event, then one less than that for second, and so on (essentially, you lose one point for each player that beats you). It has been used in practically every overall tournament forever. You also get to set the number of points awarded to the winner of an event, which is also how many players can earn overall points. Some TDs like to make sure everyone who plays an event gets points for it, so they set the maximum to a safely high number.</div>
+  <div class="description">You have a few scoring options, which is a few more than I have. Some are better than others (HARV is what they call opinionated software). The first thing to choose is your scoring method. The "countdown" method awards a set number of overall points for first place in an event, then one less than that for second, and so on (essentially, you lose one point for each player that beats you). It has been used in practically every overall tournament forever. You also get to set the number of points awarded to the winner of an event, which is also how many players can earn overall points. Some TDs like to make sure everyone who plays an event gets points for it, so they set the point base to be more than the number of players.</div>
 
   <div class="description" id="baseCodes">The countdown base can be different for different divisions. If you want to do that, follow the method described <a href="#roundCodes">above</a> for having divisions play different numbers of rounds in certain events. A common value might be "50,W:20" to start at 50 for Open players and 20 for Women players.</div>
 
   <div class="description">If you think of "countdown" as a top-down scoring system, "countup" is its bottom-up corollary. In a "countup" system, last place in an event gets one point, and it goes up from there. That tends to have the effect of weighting the overall toward popular events like golf, and making unpopular events like discathon a bit meaningless. Whichever scoring system is in use, ties split the aggregated points. A three-way tie for positions that award 20, 19, and 18 overall points results in each player getting 19 points.</div>
 
   <div class="description">The other decision to make is fairly minor, in that it is unlikely to affect overall standings near the top end. Traditionally, the winning team in a team event (DDC or freestyle) has gotten the maximum number of points. That is not possible in an individual event; the team members would be considered to have tied, and split the points. That flaw has the effect of granting a small bonus (either a half or a full point) to a player who earns points in a team event. It's a minor flaw because it only matters when comparing players who did compete in a team event with players who did not, and the high-finishing overall players almost always play both team events.</div>
+
+  <div class="description">The next option covers what to do about scratches. Let's say that Athos shot a 52 in the first round of golf, and Porthos shot a 55. Both of them drink heavily that night and fail to show up for the second round. What happens to their overall points for golf? There are two choices: you can either say that they tied, or that Athos finishes ahead of Porthos by virtue of the first round results.</div>
 
   <div class="description">Once you have pressed the "Add Tournament" button and the tournament has been added to the clicking, whirring HARV 3000 database, you should see a change in the URL up above. It will now have a little section at the end along the lines of "?id=1", except the number will be something higher than 1. Remember that number, it's your tournament ID and will be in the URL for any page related to your tournament. You'll also see the name of your tournament at the top of the page. The name is a link to the tournament website if you provided one.</div>
 
@@ -206,6 +208,10 @@ Done
 * autocomplete lists need to adjust to added/removed players
 * remove feature that edits division dropdown during registration
 * refresh to get players/teams
+* add option to score overall points by place, eg first gets 1 point; low score is better
+* show tied places when sorting overall results by event
+* fix problem with saving tournament setting for keeping juniors separate from open overall scoring
+* add ability to override tournament settings in query string (tournament results page)
 </pre>
 
 </body>
