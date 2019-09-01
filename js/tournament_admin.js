@@ -105,7 +105,7 @@ function handleTournamentInfo(data) {
 	    continue;
 	}
 
-	if (field === 'test' || field === 'junior_scoring_separate') {
+	if (field === 'test' || field === 'junior_scoring_separate' || field === 'show_division') {
 	    $('#' + field).prop('checked', value == 1);
 	    continue;
 	}

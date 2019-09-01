@@ -258,6 +258,10 @@ function saveEvents(data) {
         });
 }
 
+function compareByDivision(playerA, playerB) {
+    return DIV_ORDER.indexOf(playerA.division) - DIV_ORDER.indexOf(playerB.division);
+}
+
 /**
  * Compares two event scores. The possible values for a score, from worst to best, are:
  *
@@ -324,13 +328,13 @@ function populateDivisionSelect(divisions, selectId='divisionSelect') {
 }
 
 /**
- * Let's us say "Women's Golf" instead of "Women Golf".
+ * Say "Women's Golf" instead of "Women Golf".
  *
  * @param {string} division   division code
  */
 function getDivisionAdjective(division) {
 
-    var divAdj = DIV_NAME[division];
+    var divAdj = DIV_NAME[division] || capitalize(division);;
     if (isWomenDivision(division)) {
 	divAdj = divAdj.replace("Women", "Women's");
     }
@@ -495,7 +499,7 @@ function isJuniorDivision(division) {
 function divisionMatch(playerDivision, division) {
 
     //    return playerDivision === division || (DIV_MATCH[division] && DIV_MATCH[division][playerDivision]);
-    return playerDivision === division || ((division === 'O' || division === 'W') && DIV_MATCH[division][playerDivision]);
+    return division === 'ALL' || playerDivision === division || ((division === 'O' || division === 'W') && DIV_MATCH[division][playerDivision]);
 }
 
 /**

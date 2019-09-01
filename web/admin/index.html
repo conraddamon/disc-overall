@@ -27,7 +27,8 @@ foreach ($tournamentResults as $tournament) {
    $id = $tournament['id'];
    $title = getTournamentTitle($tournament);
 
-   $html = <<<EOF
+   if (strlen($tournament['name']) > 0) {
+     $html = <<<EOF
 <li class="tournamentLink">
   <div><a href="../tournament.html?id=$id">$title</a></div>
   <div>[ <a href="tournament.html?id=$id" class="pageLink">Edit Tournament</a> ]</div>
@@ -36,11 +37,12 @@ foreach ($tournamentResults as $tournament) {
   <div>[ <a href="results.html?id=$id" class="pageLink">Enter Results</a> ]</div>
 </li>
 EOF;
-   if (!$tournament['test']) {
-      $tournamentHtml .= $html;
-   }
-   else {
-      $testTournamentHtml .= $html;
+     if (!$tournament['test']) {
+        $tournamentHtml .= $html;
+     }
+     else {
+        $testTournamentHtml .= $html;
+     }
    }
 }
 

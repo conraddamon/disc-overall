@@ -25,6 +25,7 @@ $title = 'Tournament Setup';
 $header = '<div class="title">Set Up an Overall Tournament</div>';
 $links = '';
 $hideForm = '';
+$jsonTournamentData = null;
 if ($tournamentId) {
    $sql = "SELECT * FROM tournament WHERE id=$tournamentId";
    $tournamentData = db_query($sql, 'one');
@@ -185,6 +186,11 @@ function launch() {
       Keep scoring for juniors separately (they don't compete against Open/Women)
     </div>
 
+    <div>
+      <input type="checkbox" name="show_division" id="show_division" tabIndex=0 />
+      Show division in results
+    </div>
+
     <div id="divisionSection">
       <div class="header">Pools</div>
       <div class="description">If your tournament has pools, list them here: <input type="text" name="pools" id="pools" tabIndex=0 /></div>
@@ -339,11 +345,11 @@ function launch() {
       <div class="subheader">Non-participants</div>
       <div>
 	<input type="radio" name="scoring_dns" value="tie" id="scoring_dns_tie" tabIndex=0 />
-	<label for="scoring_dns_tie">Players who do not play an event at all are tied and split points.</label>
+	<label for="scoring_dns_tie">Players who do not play an event at all are tied and split the remaining available overall points.</label>
       </div>
       <div>
 	<input type="radio" name="scoring_dns" value="none" id="scoring_dns_none" checked="checked" tabIndex=0 />
-	<label for="scoring_dns_none">Players who do not play an event at all get no points.</label>
+	<label for="scoring_dns_none">Players who do not play an event at all get no overall points.</label>
       </div>
       <div class="subheader">Scratches</div>
       <div>

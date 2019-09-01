@@ -74,7 +74,6 @@ function handleTournamentInfo(data) {
     if (data.junior_scoring_separate == 1) {
 	delete DIV_MATCH['O']['OJ'];
 	delete DIV_MATCH['W']['WJ'];
-	//	DIV_MATCH['OM'] = DIV_MATCH['OGM'] = DIV_MATCH['OSGM'] = DIV_MATCH['WM'] = DIV_MATCH['WGM'] = DIV_MATCH['WSGM'] = null;
     }
     for (var param in window.qs) {
 	window.tournamentData[param] = window.qs[param];
@@ -112,14 +111,22 @@ function showPage(page, data) {
 	data = null;
     }
 
+    var needAllOption = (page === 'players');
+    var hasAllOption = $('#divisionSelect option[value="ALL"]').get().length > 0;
+    if (needAllOption && !hasAllOption) {
+	$('#divisionSelect').prepend(new Option('All', 'ALL'));
+	$('#divisionSelect').val($('#divisionSelect option:first').val());
+    }
+    else if (!needAllOption && hasAllOption) {
+	$('#divisionSelect option[value="ALL"]').remove();
+    }
+
     // current selection is underlined
     $('#' + window.curPage).removeClass('current');
     $('#' + page).addClass('current');
 
     window.curPage = page;
     window.curEventId = window.eventData && window.eventData[page] && window.eventData[page].id;
-
-    setSubtitle();
 
     if (!window.playerPageId) {
 	$('#content').html('');
@@ -129,10 +136,12 @@ function showPage(page, data) {
     window.sortColumn = null;
     window.reverseSort = false;
 
+    var divNumPlayers;
+
     switch(page) {
 
     case 'players': {
-	showRegisteredPlayers();
+	divNumPlayers = showRegisteredPlayers();
 	break;
     }
 
@@ -149,12 +158,14 @@ function showPage(page, data) {
     default: showResults(page, data);
 
     }
+
+    setSubtitle(divNumPlayers);
 }
 
 /**
  * Sets a header so it's clear what results are being shown.
  */
-function setSubtitle() {
+function setSubtitle(divNumPlayers) {
 
     if (window.playerPageId) {
 	$('#subtitle').text(window.playerData[window.playerPageId].name);
@@ -163,8 +174,14 @@ function setSubtitle() {
 	var division = getDivision(),
 	    divText = getDivisionAdjective(division),
 	    event = capitalizeEvent(window.curPage);
+
+	var extra = '';
+	if (divNumPlayers != null) {
+	    var totalPlayers = Object.keys(window.playerData).length;
+	    extra = ' (' + divNumPlayers + ' / ' + totalPlayers + ')';
+        }
 	
-	$('#subtitle').text(divText + ' ' + event);
+	$('#subtitle').text(divText + ' ' + event + extra);
     }
 }
 
@@ -200,6 +217,8 @@ function showRegisteredPlayers() {
     $('#content').append(showPlayers(players, { showIndexes: true, showDivisions: false }));
 
     $('.playerListTable .playerName').click(goToPlayerPage);
+
+    return players.length;
 }
 
 /**
@@ -279,7 +298,8 @@ function getResultsHeader() {
 	numCumulative = getRoundsByDivision(event, division, true);
 
     var playerHeader = !window.playerPageId ? '<th id="result_player"><span class="pageLink">Player</span></th>' : '',
-	html = '<tr><th id="result_place"><span class="pageLink">Place</span></th>' + playerHeader;
+	divHeader = !window.playerPageId && window.tournamentData.show_division ? '<th id="result_div"><span class="pageLink">Div</span></th>' : '',
+	html = '<tr><th id="result_place"><span class="pageLink">Place</span></th>' + playerHeader + divHeader;
 
     for (var round = 1; round <= rounds; round++) {
 	if (event === 'scf') {
@@ -325,11 +345,39 @@ function displayResults(column='place') {
 	return;
     }
 
+    // internal compare function that handles players or teams, with place as secondary sort key
+    function compareByDivisionThenPlace(a, b) {
+
+	if (!isTeamEvent(event)) {
+	    var result = compareByDivision(playerData[a], playerData[b]);
+	    return result !== 0 ? result : scoreData[a].rank - scoreData[b].rank;
+	}
+
+        // Sort two teams according to their strongest divisional player. A team with three players will always sort 
+        // ahead of a teamwith two players.
+	var teamA = window.teamData[curEvent][a];
+	var teamB = window.teamData[curEvent][b];
+
+	var divOrdersA = [teamA.player1, teamA.player2, teamA.player3].map(p => window.playerData[p] ? DIV_ORDER.indexOf(window.playerData[p].division) : -1).sort();
+	var divOrdersB = [teamB.player1, teamB.player2, teamB.player3].map(p => window.playerData[p] ? DIV_ORDER.indexOf(window.playerData[p].division) : -1).sort();
+
+	for (var i = 0; i < 3; i++) {
+	    if (divOrdersA[i] !== divOrdersB[i]) {
+		return divOrdersA[i] - divOrdersB[i];
+	    }
+	}
+	
+	return scoreData[a].rank - scoreData[b].rank;
+    }
+
     if (column === 'place') {
 	playerIds.sort((a, b) => scoreData[a].rank - scoreData[b].rank);
     }
     else if (column === 'player') {
 	playerIds.sort((a, b) => compareNames(getName(a), getName(b)));
+    }
+    else if (column === 'div') {
+	playerIds.sort(compareByDivisionThenPlace);
     }
     else if (column.indexOf('round') === 0) {
 	let round = column.substr(-1, 1);
@@ -384,8 +432,21 @@ function displayResults(column='place') {
 		info = scoreData[playerId],
 		row = table.rows[index + 1] || table.insertRow();
 
+	    var div = '';
+
 	    rowHtml += '<tr><td>' + info.rank + '</td>';
 	    rowHtml += !window.playerPageId ? '<td>' + name + '</td>' : '';
+	    if (window.tournamentData.show_division) {
+		if (isTeamEvent(event)) {
+		    teamMembers = getTeamMembers(window.teamData[event][playerId]);
+		    var teamDivs = teamMembers.map(p => window.playerData[p].division);
+		    div = teamDivs.join('/');
+		}
+		else {
+		    div = window.playerData[playerId].division;
+		}
+		rowHtml += !window.playerPageId ? '<td>' + div + '</td>' : '';
+	    }
 
 	    for (var round = 1; round <= rounds; round++) {
 		if (event === 'scf') {
@@ -398,7 +459,12 @@ function displayResults(column='place') {
 		}
 		rowHtml += '<td>' + formatScore(info[round]) + '</td>';
 		if (round === numCumulative) {
-		    rowHtml += '<td>' + formatScore(info.total) + '</td>';
+		    var cumTotal = 0;
+		    for (var i = 1; i <= numCumulative; i++) {
+			cumTotal += info[i];
+		    }
+		    //rowHtml += '<td>' + formatScore(info.total) + '</td>';
+		    rowHtml += '<td>' + formatScore(cumTotal) + '</td>';
 		}
 	    }
 	    rowHtml += '</tr>';
@@ -489,7 +555,8 @@ function showOverallResults(data) {
 
     // create the results table and its header row
     var playerHeader = !window.playerPageId ? '<th id="overall_player"><span class="pageLink">Player</span></th>' : '',
-	html = '<table class="resultsTable" id="overallResultsTable"><tr><th id="overall_place"><span class="pageLink">Place</span></th>' + playerHeader;
+	divHeader = !window.playerPageId && window.tournamentData.show_division ? '<th id="overall_div"><span class="pageLink">Div</span></th>' : '',
+	html = '<table class="resultsTable" id="overallResultsTable"><tr><th id="overall_place"><span class="pageLink">Place</span></th>' + playerHeader + divHeader;
 
     events.forEach(function(event) {
 	    html += '<th id="overall_' + event + '"><span class="pageLink">' + capitalizeEvent(event) + '</span></th>';
@@ -530,19 +597,44 @@ function getOverallResultsByEvent(data, event) {
  */
 function displayOverallResults(column='place') {
 
+    // internal compare function that uses place as secondary sort key
+    function compareByDivisionThenPlace(a, b) {
+	var result = compareByDivision(playerData[a], playerData[b]);
+	return result !== 0 ? result : window.overallPointsByPlayer[b] - window.overallPointsByPlayer[a];
+    }
+
     // current sort header is underlined
     if (!window.playerPageId) {
 	$('#overallResultsTable span.current').removeClass('current');
 	$('#overall_' + column + ' span').addClass('current');
     }
 
-    // sort players based on column
     var playerIds = Object.keys(window.overallPointsByPlayer);
+
+    // store overall ranks
+    var overallRank = {},
+	curPlace = 1,
+        curPoints = -1;
+
+    playerIds.sort((a, b) => window.overallPointsByPlayer[b] - window.overallPointsByPlayer[a]);
+    playerIds.forEach(function(playerId, index) {
+	    var points = window.overallPointsByPlayer[playerId];
+	    if (points !== curPoints) {
+		curPlace = index + 1;
+	    }
+	    overallRank[playerId] = curPlace;
+	    curPoints = points;
+	});
+
+    // sort players based on column
     if (column === 'place' || column === 'total') {
 	playerIds.sort((a, b) => window.overallPointsByPlayer[b] - window.overallPointsByPlayer[a]);
     }
     else if (column === 'player') {
 	playerIds.sort((a, b) => compareNames(window.playerData[a].name, window.playerData[b].name));
+    }
+    else if (column === 'div') {
+	playerIds.sort(compareByDivisionThenPlace);
     }
     else {
 	playerIds.sort((a, b) => (window.overallPointsByEvent[column][b] || 0) - (window.overallPointsByEvent[column][a] || 0));
@@ -561,8 +653,6 @@ function displayOverallResults(column='place') {
     window.sortColumn = column;
 
     var events = normalizeEvents(Object.keys(window.eventData)),
-	curPlace = 1,
-	curPoints = -1,
 	table = $('#overallResultsTable').get(0);
 
     // create a result row for each overall player
@@ -577,14 +667,12 @@ function displayOverallResults(column='place') {
 		row = table.rows[index + 1] || table.insertRow(),
 		points = window.overallPointsByEvent[column] ? window.overallPointsByEvent[column][playerId] || 0 : window.overallPointsByPlayer[playerId];
 
-	    if (points !== curPoints) {
-		curPlace = index + 1;
-	    }
-	    curPoints = points;
-
-	    html += '<td>' + curPlace + '</td>';
+	    html += '<td>' + overallRank[playerId] + '</td>';
 	    if (!window.playerPageId) {
 		html += '<td>' + name + '</td>';
+	    }
+	    if (window.tournamentData.show_division) {
+		html += !window.playerPageId ? '<td>' + window.playerData[playerId].division + '</td>' : '';
 	    }
 
 	    events.forEach(function(event) {
@@ -619,6 +707,7 @@ function getSortedResults(data, event) {
     // figure out how many rounds we have results for, and get a list of player IDs that have results
     var numRounds = Math.max.apply(Math, data.map(result => result.round)),
 	division = getDivision(),
+	numRounds = getRoundsByDivision(event, division),
 	numCumulative = getRoundsByDivision(event, division, true),
 	playerIds = uniquify(data.map(result => result.player_id)),
 	scoreData = {};
@@ -628,25 +717,35 @@ function getSortedResults(data, event) {
 
 	    let p = result.player_id,
 		round = Number(result.round),
-		score = Number(result.score);
+		score = Number(result.score || 0);
 
 	    scoreData[p] = scoreData[p] || {};
 	    scoreData[p][round] = score;
 	    scoreData[p].numRounds = scoreData[p].numRounds || 0;
 	    scoreData[p].numRounds++;
 
-	    scoreData[p].latest = Math.max(scoreData[p].latest || 0, round);
-
-	    let adjScore = score < 0 ? (LOWER_IS_BETTER[event] ? score * -1000 : score * 1000) : score;
-
-	    if (round === 1 && numCumulative > 1) {
-		scoreData[p].total = Math.max(score, 0);
-		scoreData[p].totalSort = adjScore;
+	    if (score > -2) {
+		scoreData[p].latest = Math.max(scoreData[p].latest || 0, round, numCumulative < numRounds ? numCumulative : -1);
 	    }
 
-	    if (round > 1 && round <= numCumulative) {
-		scoreData[p].total += Math.max(score, 0);
-		scoreData[p].totalSort += adjScore;
+	    //let adjScore = score < 0 ? (LOWER_IS_BETTER[event] ? score * -1000 : score * 1000) : score;
+	    let adjScore = score;
+	    if (score < 0) {
+		if (round <= numCumulative && !LOWER_IS_BETTER[event]) {
+		    adjScore = 0;
+		}
+		else {
+		    adjScore = LOWER_IS_BETTER[event] ? score * -1000 : score * 1000;
+		}
+	    }
+
+	    if (round <= numCumulative) {
+		scoreData[p].total = (scoreData[p].total || 0) + Math.max(score, 0);
+		scoreData[p].totalSort = (scoreData[p].totalSort || 0) + adjScore;
+	    }
+	    else {
+		scoreData[p].total = Math.max(score, 0);
+		scoreData[p].totalSort = adjScore;
 	    }
 	});
 
@@ -657,13 +756,13 @@ function getSortedResults(data, event) {
 		latestB = scoreData[b].latest;
 
 	    // latest round played is primary sort key
-	    if (latestA !== latestB) {
+	    if (latestA && latestB && latestA !== latestB) {
 		return latestB - latestA;
 	    }
 
 	    // score is secondary sort key
-	    let scoreA = (latestA <= numCumulative) ? scoreData[a].totalSort :  scoreData[a][latestA],
-		scoreB = (latestB <= numCumulative) ? scoreData[b].totalSort :  scoreData[b][latestB];
+	    let scoreA = (!latestA || (latestA <= numCumulative)) ? scoreData[a].totalSort :  scoreData[a][latestA],
+		scoreB = (!latestB || (latestB <= numCumulative)) ? scoreData[b].totalSort :  scoreData[b][latestB];
 
 	    let cmp = compareScores(scoreA, scoreB);
 	    return cmp === 0 ? compareNames(getName(a), getName(b)) : cmp;
@@ -674,10 +773,11 @@ function getSortedResults(data, event) {
     playerIds.forEach(function(playerId, index) {
 	    
 	    let latest = scoreData[playerId].latest,
-		score = (latest <= numCumulative) ? scoreData[playerId].totalSort :  scoreData[playerId][latest],
+		//score = latest ? scoreData[playerId][latest] : scoreData[playerId].totalSort,
+		score = scoreData[playerId].totalSort,
 		numRounds = scoreData[playerId].numRounds;
 
-	    if (latest !== curRound || score !== curScore) {
+	    if ((latest && (latest !== curRound)) || score !== curScore) {
 		curRank = index + 1;
 	    }
 	    scoreData[playerId].rank = curRank;

@@ -42,7 +42,7 @@ function getEventLinks($tournamentId, $omit=array()) {
   }
 
   $result = array_filter($data, function($e) { return $e['name'] === 'scf'; });
-  if (count($result) > 0 && !$omit['scf']) {
+  if (count($result) > 0 && !(isset($omit['scf']) && $omit['scf'])) {
     $omit['mta'] = true;
     $omit['trc'] = true;
   }
@@ -55,7 +55,7 @@ function getEventLinks($tournamentId, $omit=array()) {
 	return array_search($a, $event_order) - array_search($b, $event_order);
       });
     foreach ($events as $event) {
-      if (!$omit[$event]) {
+      if (!(isset($omit[$event]) && $omit[$event])) {
 	$eventLinks .= getLink($event);
       }
     }

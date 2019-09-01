@@ -23,12 +23,14 @@ $tournamentResults = db_query($sql);
 $tournamentHtml = '';
 $testTournamentHtml = '';
 foreach ($tournamentResults as $tournament) {
-   $html = "<li class='tournamentLink'><a href='tournament.html?id=" . $tournament['id'] . "'>" . getTournamentTitle($tournament) . "</a></li>";
-   if (!$tournament['test']) {
-      $tournamentHtml .= $html;
-   }
-   else {
-      $testTournamentHtml .= $html;
+   if (strlen($tournament['name']) > 0) {
+     $html = "<li class='tournamentLink'><a href='tournament.html?id=" . $tournament['id'] . "'>" . getTournamentTitle($tournament) . "</a></li>";
+     if (!$tournament['test']) {
+        $tournamentHtml .= $html;
+     }
+     else {
+        $testTournamentHtml .= $html;
+     }
    }
 }
 

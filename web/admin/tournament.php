@@ -22,7 +22,7 @@ elog(LOG_INFO, "post to tournament.php, edit mode: " . $tournamentId);
 
 $textFields = array('name', 'td_name', 'td_email', 'password', 'location', 'url', 'divisions', 'pools', 'note', 'scoring', 'scoring_team', 'ddc_team', 'freestyle_team', 'countdown_base', 'mixed_team', 'mixed_team_scoring', 'scoring_dns', 'scoring_scratches');
 $numericFields = array('min_events');
-$booleanFields = array('test', 'junior_scoring_separate');
+$booleanFields = array('test', 'junior_scoring_separate', 'show_division');
 $dateFields = array('start', 'end');
 $allFields = array_merge($textFields, $numericFields, $booleanFields, $dateFields);
 
