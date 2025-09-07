@@ -25,6 +25,7 @@ function initializeResults(tournamentId) {
 
     // handle Enter key
     $('#score').on('keyup', keyHandler);
+    $('#note').on('keyup', keyHandler);
 
     // handle change in division, pool, or round number
     $('#divisionSelect,#poolSelect,#roundSelect').change(function(e) {
@@ -35,8 +36,13 @@ function initializeResults(tournamentId) {
     // adjust rounds if division changes
     $('#divisionSelect').change(function(e) {
 	    populateRoundSelect(window.curEvent, getDivision());
+	    window.curDivision = getDivision();
 	});
 
+    // handle change in whether event is using rank scoring
+    $('#resultAsPlace').click(() => {
+	    handleRankScoring(window.curEvent);
+	});
 
     // send the set of requests for data that we need to get going; the requests are not dependent on each
     // other, so are sent in parallel
@@ -108,10 +114,14 @@ function handleEventInfo(data) {
     saveEvents(data);
 
     // go get the teams for the team events; requests sent in parallel
-    var teamEvents = Object.keys(IS_TEAM_EVENT),
-	requests = teamEvents.map(function(event) {
-		return sendRequest('get-teams', { eventId: getEventId(event) });
-	    });
+    var teamEvents = Object.keys(IS_TEAM_EVENT);
+    var requests = [];
+    teamEvents.forEach(function(ev) {
+	var eventId = getEventId(ev);
+	if (eventId) {
+	    requests.push(sendRequest('get-teams', { eventId: getEventId(ev) }));
+	}
+    });
 
     sendRequests(requests, [ handleTeamInfo, handleTeamInfo ]);
 }
@@ -123,11 +133,43 @@ function handleEventInfo(data) {
 function setupAutocomplete() {
 
     var event = window.curEvent,
-	teamEvent = isTeamEvent(event),
+	division = getDivision(),
+	teamEvent = isTeamEvent(event, division),
 	nameList = getNameList(teamEvent ? window.teamData[event] : window.playerData),
 	rejectFunc = rejectAutocomplete.bind(null, teamEvent);
 
     addNameAutocomplete(nameList, teamEvent ? matchTeam : null, rejectFunc, null, teamEvent ? 'team' : 'player');
+}
+
+function handleRankScoring() {
+
+    const checked = $('#resultAsPlace').is(':checked');
+    reflectRankScoring(checked);
+
+    let event = window.curEvent;
+    if (event === 'mta' || event === 'trc') {
+	$('#mta').text('SCF');
+	$('#mta').attr('id', 'scf');
+	$('#trc')[0].previousSibling.textContent = ' ] ';
+	$('#trc')[0].nextSibling.textContent = ' [ ';
+	$('#trc').remove();
+	event = window.curEvent = 'scf';
+	$('#scf').addClass('current');
+	setSubtitle();
+    }
+
+    sendRequest('set-event-rank-scoring', { eventId: getEventId(event), rankScoring: checked ? 1 : 0 });
+}
+
+function reflectRankScoring(isRankScoring) {
+
+    $('#resultAsPlace').prop('checked', isRankScoring);
+    $('#scoreLabel').text(isRankScoring ? 'Place:' : 'Score:');
+    if (isRankScoring) {
+	$('.roundSelect').hide();
+    } else {
+	$('.roundSelect').show();
+    }
 }
 
 /**
@@ -213,7 +255,7 @@ function showPage(event) {
     window.curEvent = event;
 
     setupAutocomplete();
-    populateRoundSelect(window.curEvent, getDivision());
+    populateRoundSelect(event, getDivision());
     setSubtitle();
 
     var hint = (event === 'mta' || event === 'trc') ? 'SCR = scratch, 0 = no catch' : 'SCR = scratch, DNF = did not finish';
@@ -223,21 +265,7 @@ function showPage(event) {
     $('#team').val('');
     $('#score').val('');
 
-    // show either the player or team name entry box as appropriate
-    var teamEvent = isTeamEvent(event),
-	scoreLabel = 'Score:';
-
-    if (teamEvent) {
-	$('#playerDiv').hide();
-	$('#teamDiv').show();
-	$('#team').focus();
-	scoreLabel = "Place:";
-    }
-    else {
-	$('#playerDiv').show();
-	$('#teamDiv').hide();
-	$('#player').focus();
-    }
+    handleTeamEvent(event);
 
     if (IS_TIMED_EVENT[event]) {
 	scoreLabel = 'Time:';
@@ -252,7 +280,43 @@ function showPage(event) {
 	$('#showAllContainer').hide();
     }
 
+    // if team size varies by division, we want exact divisions available (not just Open / Women)
+    const teamSize = (event === 'ddc' || event === 'freestyle') && window.tournamentData[event + '_team'];
+    if (teamSize && teamSize.includes(':')) {
+	$('#divisionSelect option').remove();
+	const divisions = window.tournamentData.divisions.split(',').filter(div => div !== 'O' && div !== 'W').join(',');
+	populateDivisionSelect(divisions);
+	$('#divisionSelect').change(function(e) {
+		handleTeamEvent(event);
+		setupAutocomplete();
+	    });
+    }
+
+    reflectRankScoring(window.eventData[event].rank_scoring === '1');
+
+    $('#note').val(window.eventData[event].note || '');
+
     showResults(event);
+}
+
+function handleTeamEvent(event) {
+
+    // show either the player or team name entry box as appropriate
+    var division = getDivision(),
+	teamEvent = isTeamEvent(event, division),
+	scoreLabel = 'Score:';
+
+    if (teamEvent) {
+	$('#playerDiv').hide();
+	$('#teamDiv').show();
+	$('#team').focus();
+	scoreLabel = "Place:";
+    }
+    else {
+	$('#playerDiv').show();
+	$('#teamDiv').hide();
+	$('#player').focus();
+    }
 }
 
 /**
@@ -263,15 +327,17 @@ function showPage(event) {
 function showResults(event) {
 
     event = event || window.curEvent;
+    const isRankScoring = window.eventData[event].rank_scoring === '1';
 
     $('#results').html('');
 
     var eventId = getEventId(),
-	round = getRound();
+	division = getDivision(),
+	round = isRankScoring ? 0 : getRound();
 
     sendRequest('get-results', { event: event, eventId: eventId, round: round }, handleResults);
 
-    if (isTeamEvent(event)) {
+    if (isTeamEvent(event, division)) {
 	$('#team').focus();
     }
     else {
@@ -320,7 +386,9 @@ function addResultRow(result, index) {
     // player could be a person or a team
     var html = '',
 	event = window.curEvent,
-	teamEvent = isTeamEvent(event),
+	isRankScoring = window.eventData[event].rank_scoring === '1',
+	division = getDivision(),
+	teamEvent = isTeamEvent(event, division),
 	divClass = teamEvent ? 'teamName' : 'playerName';
 
     // got a score with decimals, switch that event to decimals mode
@@ -328,12 +396,12 @@ function addResultRow(result, index) {
 	USE_DECIMAL[event] = true;
     }
 
-    var event = window.eventById[result.event_id].name,
-	playerId = teamEvent ? teamData[event][result.player_id].player1 : result.player_id,
+    //    var event = window.eventById[result.event_id].name,
+    var playerId = teamEvent ? teamData[event][result.player_id].player1 : result.player_id,
 	division = window.playerData[playerId].division,
 	currentRecord = window.recordData[event] && window.recordData[event][division];
 
-    var isRecord = currentRecord && Number(result.score) >= Number(currentRecord.score);
+    var isRecord = !isRankScoring && currentRecord && Number(result.score) >= Number(currentRecord.score);
 
     // create the row
     html += '<li data-resultid=' + result.id + '>';
@@ -397,7 +465,8 @@ function handleResultRemoval(resultId) {
 
     var result = window.resultMap[resultId],
 	event = window.curEvent,
-	playerData = isTeamEvent(event) ? window.teamData[event] : window.playerData,
+	division = getDivision(),
+	playerData = isTeamEvent(event, division) ? window.teamData[event] : window.playerData,
 	player = playerData[result.player_id].name;
 
     // remove this result from our list so it's eligible for autocomplete
@@ -422,6 +491,9 @@ function keyHandler(e) {
     if (e.keyCode === 13) {
 	if (this.id === 'score') {
 	    addScore();
+	} else if (this.id === 'note') {
+	    const note = $('#note').val();
+	    sendRequest('set-event-note', { eventId: getEventId(), note });
 	}
         e.preventDefault();
     }
@@ -433,13 +505,15 @@ function keyHandler(e) {
 function addScore() {
 
     var event = window.curEvent,
-	teamEvent = isTeamEvent(event),
+	division = getDivision(),
+	teamEvent = isTeamEvent(event, division),
 	eventId = getEventId(),
 	round = getRound(),
 	input = $('#' + (teamEvent ? 'team' : 'player')),
 	scorer = input.val(),
 	scorerId = teamEvent ? window.teamId[event][scorer] : window.playerId[scorer],
 	rawScore = $('#score').val().trim(),
+	isRankScoring = window.eventData[event].rank_scoring === '1',
 	min, sec;
 
     // do nothing if user accidentally hit Enter without typing in a score
@@ -451,7 +525,7 @@ function addScore() {
     if (!$.isNumeric(rawScore) && event !== 'discathon' && [ 'SCR', 'DNF', 'NC' ].indexOf(rawScore.toUpperCase()) === -1) {
 	showNotification('Error: ' + rawScore + ' is not a valid score.');
 	return;
-    }	
+    }
 
     // player value should always come from autocomplete; make sure they didn't type in something random
     if (!scorerId) {
@@ -465,6 +539,10 @@ function addScore() {
     }
     if (rawScore.toUpperCase() === 'DNF' || rawScore.toUpperCase() === 'NC') {
 	rawScore = '-1';
+    }
+
+    if (isRankScoring) {
+	round = 0;
     }
 
     // create result object
@@ -487,7 +565,8 @@ function addScore() {
 
     // update player pool if appropriate
     var pool = getPool(),
-	playerData = isTeamEvent(event) ? window.teamData[event] : window.playerData,
+	division = getDivision(),
+	playerData = isTeamEvent(event, division) ? window.teamData[event] : window.playerData,
 	playerPool = pool && playerData[scorerId].pool;
 
     if (pool && !teamEvent && pool != playerPool) {

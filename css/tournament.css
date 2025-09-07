@@ -7,3 +7,7 @@
   color: #666;
   text-decoration: none;
 }
+
+#note {
+  font-style: italic;
+}

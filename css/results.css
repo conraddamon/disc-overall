@@ -45,3 +45,7 @@
 div.record {
   width: 20rem;
 }
+
+.chooser .resultAsPlace {
+  font-size: 1.1rem;
+}

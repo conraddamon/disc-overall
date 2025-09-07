@@ -25,6 +25,7 @@ function initializeTournamentAdmin(tournamentData) {
     $('#scf,#mta,#trc').change(scfHandler); 
     $('#countdown_base').change(countdownHandler);
     $('input[name="events[]"]').change(eventHandler);
+    $('input[name="scoring"]').change(scoringHandler);
     $('input[name="mixed_team[]"]').change(mixedTeamHandler);
 
     // use jQuery's mini-calendar
@@ -90,7 +91,14 @@ function handleTournamentInfo(data) {
 	if (field === 'ddc_team' || field === 'freestyle_team') {
 	    let ev = field.replace('_team', '');
 	    value = value || '2';
-	    [ '1', '2', '3' ].forEach(num => $('#' + ev + num).prop('checked', value.indexOf(num) !== -1));
+	    if (value.includes(':')) {
+		[ '1', '2', '3' ].forEach(num => $('#' + ev + num).prop('checked', false));
+		$('#' + ev + '_custom').prop('checked', true);
+		$('#' + ev + '_teams').val(value);
+	    }
+	    else {
+		[ '1', '2', '3' ].forEach(num => $('#' + ev + num).prop('checked', value.indexOf(num) !== -1));
+	    }
 	    continue;
 	}
 
@@ -111,7 +119,7 @@ function handleTournamentInfo(data) {
 	}
 
 	// scoring settings are radio buttons
-	if (IS_RADIO[field]) {
+	if (IS_RADIO[field] && value) {
 	    $('input[name=' + field + '][value=' + value + ']').prop('checked', true);
 	    continue;
 	}
@@ -133,6 +141,9 @@ function handleTournamentInfo(data) {
 
     // now that we have data, update the scoring details
     countdownHandler.call($('#countdown_base'));
+
+    // disable scoring choices if doing manual overall scoring
+    scoringHandler.call($('#scoring_manual'));
 
     // event info is in a different table
     sendRequest('get-event', { tournamentId: window.tournamentId }, handleEventInfo);
@@ -364,6 +375,13 @@ function eventHandler(e) {
     else if (!checked) {
 	$(roundsInput).val('');
     }
+}
+
+function scoringHandler(e) {
+    const isManual = $('#scoring_manual').is(':checked');
+    $('input[name="scoring_team"]').attr('disabled', isManual);
+    $('input[name="scoring_dns"]').attr('disabled', isManual);
+    $('input[name="scoring_scratches"]').attr('disabled', isManual);
 }
 
 /**

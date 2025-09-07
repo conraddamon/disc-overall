@@ -47,8 +47,8 @@ textarea {
   padding: 1rem;
 }
 
-input[type="radio"] {
-  margin: .5rem 0;
+.team_event_config {
+  display: flex;
 }
 
 #mixed_team_scoring_section input {

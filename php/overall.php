@@ -1,6 +1,7 @@
 <?php
 
 require_once('common.php');
+require_once('util.php');
 
 $DIV_NAME = array(
     'O' => 'Open',
@@ -33,9 +34,8 @@ function getLink($str) {
 }
 
 # returns a set of links to a tournament's events
-function getEventLinks($tournamentId, $omit=array()) {
+function getEventLinks($tournamentId, $data, $omit=array(), $isAdmin=false, $isArchive=false, $test=false) {
 
-  $data = is_array($tournamentId) ? $tournamentId : null;
   if (!$data) {
     $sql = "SELECT * FROM event WHERE tournament_id=$tournamentId AND active=true";
     $data = db_query($sql);
@@ -47,6 +47,10 @@ function getEventLinks($tournamentId, $omit=array()) {
     $omit['trc'] = true;
   }
   
+  if ($isArchive) {
+    $omit = array();
+  }
+
   $eventLinks = '';
   if ($data) {
     $events = array_map(function($e) { return $e['name']; }, $data);
@@ -61,27 +65,50 @@ function getEventLinks($tournamentId, $omit=array()) {
     }
   }
 
+  if ($isAdmin) {
+    $test_param = isset($test) ? '&test' : '';
+    $eventLinks .= ' [ <a href="./tournament.html?id=' . $tournamentId . "$test_param\" class='pageLink'>Admin</a> ]";
+  }
+
   return $eventLinks;
 }
 
 function getAdminLinks($dir='.') {
 
   $page = $_SERVER['PHP_SELF'];
+
+  $extra = propagate_params(true);
+
   $text = '';
   if (strpos($page, 'admin/index') === false) {
-    $text .= "[ <a href='$dir/index.html' class='pageLink'>Admin home</a> ]";
+    $text .= "[ <a href='$dir/index.html$extra' class='pageLink'>Admin home</a> ]";
   }
   if (strpos($page, 'guide') === false) {
-    $text .= "[ <a href='$dir/guide.html' class='pageLink'>Admin guide</a> ]";
+    $text .= "[ <a href='$dir/guide.html$extra' class='pageLink'>Admin guide</a> ]";
   }
   if (strpos($page, 'cheatsheet') === false) {
-    $text .= "[ <a href='$dir/cheatsheet.html' class='pageLink'>Cheat sheet</a> ]";
+    $text .= "[ <a href='$dir/cheatsheet.html$extra' class='pageLink'>Cheat sheet</a> ]";
   }
   if (strpos($page, 'tutorial') === false) {
-    $text .= "[ <a href='$dir/tutorial/' class='pageLink'>Tutorial</a> ]";
+    $text .= "[ <a href='$dir/tutorial/$extra' class='pageLink'>Tutorial</a> ]";
   }
   if (strpos($page, 'tournament') === false) {
-    $text .= "[ <a href='$dir/tournament.html' class='pageLink'>New tournament</a> ]";
+    $text .= "[ <a href='$dir/tournament.html$extra' class='pageLink'>New tournament</a> ]";
+  }
+  return "<div class='pageLinks'>$text</div>";
+}
+
+function getSeriesAdminLinks($test, $dir='.') {
+
+  $page = $_SERVER['PHP_SELF'];
+  $test_param = isset($test) ? '?test' : '';
+
+  $text = '';
+  if (strpos($page, 'admin/index') === false) {
+    $text .= "[ <a href='$dir/index.html$test_param' class='pageLink'>Series admin home</a> ]";
+  }
+  if (strpos($page, 'series.html') === false) {
+    $text .= "[ <a href='$dir/series.html$test_param' class='pageLink'>New series</a> ]";
   }
   return "<div class='pageLinks'>$text</div>";
 }

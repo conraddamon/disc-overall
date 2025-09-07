@@ -11,6 +11,7 @@ $authenticated = false;
 
 // see if user just filled in the login form with the password
 if ($pw) {
+  // show_me($tournamentData);
   $db_pw = $tournamentData['password'];
   if (verify_password($pw, $db_pw)) {
     set_auth($tournamentId);

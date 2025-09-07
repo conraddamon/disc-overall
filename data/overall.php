@@ -13,15 +13,20 @@ if ($_SERVER['HTTP_X_REQUESTED_WITH'] !== 'XMLHttpRequest') {
   exit('');
 }
 
-require_once('db1.php');
+require_once('db.php');
 require_once('log.php');
 require_once('util.php');
 
 $op = get_input('op', 'get');
-elog(LOG_INFO, "overall.php, op=$op");
+plog("overall.php, op=$op");
+
+if ($op == 'get-tournaments') {
+  $sql = "SELECT * FROM tournament ORDER BY start DESC";
+  $result = db_query($sql);
+}
 
 # gets data for a tournament
-if ($op == 'get-tournament') {
+elseif ($op == 'get-tournament') {
   $tournamentId = get_input('tournamentId', 'get');
   $sql = "SELECT * FROM tournament WHERE id=$tournamentId";
   $result = db_query($sql, 'one');
@@ -39,7 +44,7 @@ elseif ($op == 'load-person') {
 elseif ($op == 'add-person') {
   $name = db_quote(get_input('name', 'get'));
   $sex = get_input('sex', 'get');
-  $sql = "INSERT INTO person(name,sex) VALUES('$name','$sex')";
+  $sql = "INSERT INTO person(name,sex) VALUES($name,'$sex')";
   $result = db_query($sql);
 }
 
@@ -125,7 +130,7 @@ elseif ($op == 'remove-team') {
   $teamId = get_input('teamId', 'get');
   $sql = "DELETE FROM team WHERE id=$teamId";
   $result = db_query($sql);
-  elog(LOG_INFO, "DELETE: $result");
+  plog("DELETE: $result");
 }
 
 # gets results for an event or tournament
@@ -239,5 +244,43 @@ elseif ($op == 'set-record') {
   $result = db_query($sql);
 }
 
-echo json_encode($result);
+elseif ($op == 'set-event-rank-scoring') {
+  $eventId = get_input('eventId', 'get');
+  $rankScoring = get_input('rankScoring', 'get');
+  $sql = "UPDATE event SET rank_scoring=$rankScoring WHERE id=$eventId";
+  $result = db_query($sql);
+}
+
+elseif ($op == 'set-event-note') {
+  $eventId = get_input('eventId', 'get');
+  $note = get_input('note', 'get');
+  $sql = "UPDATE event SET note='$note' WHERE id=$eventId";
+  error_log($sql);
+  $result = db_query($sql);
+}
+
+elseif ($op == 'get-series-tournaments') {
+  $seriesId = get_input('seriesId', 'get');
+  $sql = "SELECT * FROM tournament WHERE series_id=$seriesId";
+  error_log($sql);
+  $result = db_query($sql);
+}
+
+# add a tournament to a series
+elseif ($op == 'add-series-tournament') {
+  $seriesId = get_input('seriesId', 'get');
+  $tournamentId = get_input('tournamentId', 'get');
+  $sql = "UPDATE tournament SET series_id=$seriesId WHERE id=$tournamentId";
+  error_log($sql);
+  $result = db_query($sql);
+}
+
+# gets data for a series
+elseif ($op == 'get-series') {
+  $seriesId = get_input('seriesId', 'get');
+  $sql = "SELECT * FROM series WHERE id=$seriesId";
+  $result = db_query($sql, 'one');
+}
+
+echo json_encode(db_encode($result));
 ?>

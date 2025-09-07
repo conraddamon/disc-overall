@@ -13,6 +13,9 @@ DIV_MATCH['WM'] = { 'WGM': true, 'WSGM': true, 'WL': true };
 DIV_MATCH['WGM'] = { 'WSGM': true, 'WL': true };
 DIV_MATCH['WSGM'] = { 'WL': true };
 
+DIV_CLASS_ORDER = [ 'O', 'W' ];
+DIV_AGE_ORDER = [ '', 'M', 'GM', 'SGM', 'L' ];
+
 // number of columns for displaying a large list of players
 const PLAYER_COLUMNS = 5;
 
@@ -32,6 +35,9 @@ const IS_SCF_EVENT = { 'mta': true, 'trc': true };
 
 // which events always show numbers with two decimal places
 const USE_DECIMAL = { 'scf': true, 'mta': true };
+
+const DUMMY_PLAYER_ID = '-1';
+const DUMMY_PLAYER_NAME = '[ no partner ]';
 
 function normalizeEvents(events) {
     
@@ -181,7 +187,7 @@ function capitalizeEvent(event) {
  */
 function getTeamName(players) {
 
-    players.sort(compareNames);
+    players.filter(name => name !== DUMMY_PLAYER_NAME).sort(compareNames);
     if (players.length > 2) {
 	players = players.filter(p => !!p).map(function(name) {
 		var idx = getNameSplitIndex(name);
@@ -192,9 +198,35 @@ function getTeamName(players) {
     return players.join(' / ');
 }
 
-function isTeamEvent(event) {
+/**
+ * Calculate a division for a team by combining the least-restrictive class (O or W) with the 
+ * least-restrictive age classification.
+ */
+function getTeamDivision(divisions) {
 
-    return IS_TEAM_EVENT[event] && window.tournamentData[event + '_team'] != 1;
+    const divClasses = divisions.map(div => div.substring(0, 1));
+    divClasses.sort((divClassA, divClassB) => DIV_CLASS_ORDER.indexOf(divClassA) - DIV_CLASS_ORDER.indexOf(divClassB));
+    const lowClass = divClasses[0];
+    const divAges = divisions.map(div => div.substring(1));
+    divAges.sort((divAgeA, divAgeB) => DIV_AGE_ORDER.indexOf(divAgeA) - DIV_AGE_ORDER.indexOf(divAgeB));
+    let lowAge = divAges[0];
+
+    // Junior plus non-junior reverts to O or W
+    if (divAges.includes('J') && divAges.findIndex(age => age !== 'J') !== -1) {
+	lowAge = '';
+    }
+
+    return lowClass + lowAge;
+}
+
+function isTeamEvent(event, division) {
+
+    division = division || window.curDivision;
+    let data = window.tournamentData[event + '_team'];
+    if (data && data.includes(':')) {
+	data = getValueByDivision(data, division);
+    }
+    return IS_TEAM_EVENT[event] && data != 1;
 }
 
 /**
@@ -206,7 +238,7 @@ function isTeamEvent(event) {
 function getName(id, event) {
 
     event = event || window.curEvent;
-    var playerData = isTeamEvent(event) ? window.teamData[event] : window.playerData,
+    var playerData = isTeamEvent(event, window.curDivision) ? window.teamData[event] : window.playerData,
 	player = playerData[id];
 
     return player ? player.name : '';
@@ -267,14 +299,14 @@ function compareByDivision(playerA, playerB) {
  *
  *     -2 (SCR), -1 (DNF or NC), 0, any positive number
  *
- * Note: window.curEvent must be set for this to work correctly
+ * Note: window.curEvent must be set for this to work correctly for rank scoring
  *
  * @param {Number} scoreA     a score
  * @param {Number} scoreB     a score
  *
  * @return 1 if the first score is better, -1 if the second score is better, or 0 if they are equivalent
  */
-function compareScores(scoreA, scoreB, event) {
+function compareScores(scoreA, scoreB) {
 
     // absence of a score is always worse
     if (scoreA == null || scoreB == null) {
@@ -293,7 +325,10 @@ function compareScores(scoreA, scoreB, event) {
 	return scoreA === scoreB ? 0 : scoreA === -1 ? 1 : -1;
     }
 
-    return LOWER_IS_BETTER[window.curEvent] ? scoreA - scoreB : scoreB - scoreA;
+    const event = window.curEvent;
+    const isRankScoring = event && window.eventData && window.eventData[event].rank_scoring === '1';
+
+    return LOWER_IS_BETTER[event] || isRankScoring ? scoreA - scoreB : scoreB - scoreA;
 }
 
 /**
@@ -429,8 +464,23 @@ function getCountdownBaseByDivision(division) {
  */
 function getValueByDivision(codeStr, division) {
 
-    var codes = codeStr.split(/\s*,\s*/),
+    var codes = codeStr.split(/\s*;\s*/),
 	divMap = toLookupHash(DIV_ORDER);
+
+    let defaultValue;
+    for (let i = 0; i < codes.length; i++) {
+	const code = codes[i];
+	const [ div, value ] = code.split(':');
+	if (div === division) {
+	    return Number(value);
+	}
+	if (!value) {
+	    defaultValue = div;
+	}
+    }
+
+    return Number(defaultValue);
+
 
     codes.forEach(function(code) {
             var value = parseInt(code), div;
@@ -567,12 +617,17 @@ function getEventId(event) {
 function formatScore(score, event) {
 
     event = event || window.curEvent;
+    const isRankScoring = window.eventData[event].rank_scoring === '1';
     
-    if (score == null || (event === 'scf' && !score)) {
+    // if (score == null || (event === 'scf' && !score)) {
+    if (score == null) {
 	return '-';
     }
 
-    event = event || window.curEvent;
+    if (isRankScoring) {
+	return parseInt(score);
+    }
+
     if (event === 'discathon' && $.isNumeric(score) && score > 0) {
 	var min = Math.floor(score / 60),
 	    sec = score % 60;
@@ -582,7 +637,8 @@ function formatScore(score, event) {
 	return [ min, sec ].join(":");
     }
     else if (score == -2) {
-	return 'SCR';
+	//	return 'SCR';
+	return '-';
     }
     else if (score == -1) {
 	return [ 'scf', 'mta', 'trc' ].indexOf(event) !== -1 ? 'NC' : 'DNF';
@@ -729,7 +785,7 @@ function filterResultsByDivision(data, division, expandTeams=true) {
     return data.filter(function(result) {
 	    // team is okay if any of its members match the division
 	    var event = window.eventById[result.event_id].name;
-            if (expandTeams && isTeamEvent(event) && window.teamData) {
+            if (expandTeams && isTeamEvent(event, division) && window.teamData) {
                 var members = getTeamMembers(window.teamData[event][result.player_id]);
                 return !!members.find(playerId => divisionMatch(window.playerData[playerId].division, division));
             }

@@ -120,6 +120,7 @@ function showPage(page, data) {
     else if (!needAllOption && hasAllOption) {
 	$('#divisionSelect option[value="ALL"]').remove();
     }
+    window.curDivision = getDivision();
 
     // current selection is underlined
     $('#' + window.curPage).removeClass('current');
@@ -155,11 +156,19 @@ function showPage(page, data) {
 	break;
     }
 
-    default: showResults(page, data);
+	//    default: showResults(page, window.resultData);
+    default: showResults(page);
 
     }
 
     setSubtitle(divNumPlayers);
+
+    if (page !== 'players') {
+	TEAM_EVENTS.forEach(event => {
+		$('#' + event + 'TeamHeader').text('');
+		$('#' + event + 'TeamContainer').text('');
+	    });
+    }
 }
 
 /**
@@ -182,6 +191,8 @@ function setSubtitle(divNumPlayers) {
         }
 	
 	$('#subtitle').text(divText + ' ' + event + extra);
+	const note = window.eventData[window.curEvent] && window.eventData[window.curEvent].note;
+	$('#note').text(note || '');
     }
 }
 
@@ -217,6 +228,22 @@ function showRegisteredPlayers() {
     $('#content').append(showPlayers(players, { showIndexes: true, showDivisions: false }));
 
     $('.playerListTable .playerName').click(goToPlayerPage);
+
+    TEAM_EVENTS.forEach(event => {
+	    const teamIds = Object.keys(window.teamData[event]);
+	    if (teamIds && teamIds.length > 0) {
+		$('#' + event + 'TeamHeader').text(capitalizeEvent(event) + ' Teams');
+		const teams = Object.values(window.teamData[event]).filter(team => {
+			const divs = [ window.playerData[team.player1].division, window.playerData[team.player2].division ];
+			if (team.player3 !== '0') {
+			    divs.push(window.playerData[team.player3].division);
+			}
+			const teamDivision = getTeamDivision(divs);
+			return window.curDivision === 'ALL' || window.curDivision === teamDivision || DIV_MATCH[window.curDivision][teamDivision];
+		    });
+		$('#' + event + 'TeamContainer').html(showPlayers(teams, { numCols: 3, showIndexes: true, showDivisions: false }));
+	    }
+	});
 
     return players.length;
 }
@@ -295,20 +322,23 @@ function getResultsHeader() {
     var event = window.curEvent,
 	division = getDivision(),
 	rounds = getRoundsByDivision(event, division),
+	isRankScoring = window.eventData[event].rank_scoring === '1',
 	numCumulative = getRoundsByDivision(event, division, true);
 
     var playerHeader = !window.playerPageId ? '<th id="result_player"><span class="pageLink">Player</span></th>' : '',
 	divHeader = !window.playerPageId && window.tournamentData.show_division ? '<th id="result_div"><span class="pageLink">Div</span></th>' : '',
 	html = '<tr><th id="result_place"><span class="pageLink">Place</span></th>' + playerHeader + divHeader;
 
-    for (var round = 1; round <= rounds; round++) {
-	if (event === 'scf') {
-	    html += '<th id="result_mta_round' + round + '"><span class="pageLink">MTA</span></th>';
-	    html += '<th id="result_trc_round' + round + '"><span class="pageLink">TRC</span></th>';
-	}
-	html += '<th id="result_round' + round + '"><span class="pageLink">' + getRoundName(event, round) + '</span></th>';
-	if (round === numCumulative) {
-	    html += '<th id="result_total"><span class="pageLink">Total</span></th>';
+    if (!isRankScoring) {
+	for (var round = 1; round <= rounds; round++) {
+	    if (event === 'scf') {
+		html += '<th id="result_mta_round' + round + '"><span class="pageLink">MTA</span></th>';
+		html += '<th id="result_trc_round' + round + '"><span class="pageLink">TRC</span></th>';
+	    }
+	    html += '<th id="result_round' + round + '"><span class="pageLink">' + getRoundName(event, round) + '</span></th>';
+	    if (round === numCumulative) {
+		html += '<th id="result_total"><span class="pageLink">Total</span></th>';
+	    }
 	}
     }
     html += '</tr>';
@@ -324,6 +354,7 @@ function getResultsHeader() {
 function displayResults(column='place') {
 
     var event = window.curEvent,
+	isRankScoring = window.eventData[event].rank_scoring === '1',
 	resultInfo = getSortedResults(window.resultData, event);
 
     if (!resultInfo) {
@@ -339,7 +370,7 @@ function displayResults(column='place') {
     // create a result row for each player/team
     var playerIds = resultInfo.playerIds,
 	scoreData = resultInfo.scoreData,
-	playerData = isTeamEvent(event) ? window.teamData[event] : window.playerData;
+	playerData = isTeamEvent(event, getDivision()) ? window.teamData[event] : window.playerData;
 
     if (!scoreData) {
 	return;
@@ -354,7 +385,7 @@ function displayResults(column='place') {
 	}
 
         // Sort two teams according to their strongest divisional player. A team with three players will always sort 
-        // ahead of a teamwith two players.
+        // ahead of a team with two players.
 	var teamA = window.teamData[curEvent][a];
 	var teamB = window.teamData[curEvent][b];
 
@@ -448,23 +479,25 @@ function displayResults(column='place') {
 		rowHtml += !window.playerPageId ? '<td>' + div + '</td>' : '';
 	    }
 
-	    for (var round = 1; round <= rounds; round++) {
-		if (event === 'scf') {
-		    SCF_EVENTS.forEach(function(scfEvent) {
-			    var result = window.scfData[scfEvent].find(res => res.player_id == playerId && res.round == round),
-				score = result ? formatScore(result.score, scfEvent) : '-';
+	    if (!isRankScoring) {
+		for (var round = 1; round <= rounds; round++) {
+		    if (event === 'scf') {
+			SCF_EVENTS.forEach(function(scfEvent) {
+				var result = window.scfData[scfEvent].find(res => res.player_id == playerId && res.round == round),
+				    score = result ? formatScore(result.score, scfEvent) : '-';
 
-			    rowHtml += '<td>' + score + '</td>';
-			});
-		}
-		rowHtml += '<td>' + formatScore(info[round]) + '</td>';
-		if (round === numCumulative) {
-		    var cumTotal = 0;
-		    for (var i = 1; i <= numCumulative; i++) {
-			cumTotal += info[i];
+				rowHtml += '<td>' + score + '</td>';
+			    });
 		    }
-		    //rowHtml += '<td>' + formatScore(info.total) + '</td>';
-		    rowHtml += '<td>' + formatScore(cumTotal) + '</td>';
+		    rowHtml += '<td>' + formatScore(info[round]) + '</td>';
+		    if (round === numCumulative) {
+			var cumTotal = 0;
+			for (var i = 1; i <= numCumulative; i++) {
+			    cumTotal += Math.max(info[i] || 0, 0);
+			}
+			//rowHtml += '<td>' + formatScore(info.total) + '</td>';
+			rowHtml += '<td>' + formatScore(cumTotal) + '</td>';
+		    }
 		}
 	    }
 	    rowHtml += '</tr>';
@@ -492,6 +525,11 @@ function showOverallResults(data) {
     // transform results so each result is individual
     data = flattenResults(data);
     data = filterResultsByDivision(data, getDivision(), false);
+
+    if (window.eventData.overall && window.eventData.overall.rank_scoring == '1') {
+	showOverallPlaces(data);
+	return;
+    }
 
     // if we have SCF, calculate those results from MTA and TRC and add them to our data
     if (window.eventData['scf']) {
@@ -553,6 +591,17 @@ function showOverallResults(data) {
 	    }
 	});
 
+    createOverallHeader(events);
+
+    // ship it!
+    displayOverallResults();
+
+    // add sort handlers
+    $('#overallResultsTable th span').click(sortResults);
+}
+
+function createOverallHeader(events) {
+
     // create the results table and its header row
     var playerHeader = !window.playerPageId ? '<th id="overall_player"><span class="pageLink">Player</span></th>' : '',
 	divHeader = !window.playerPageId && window.tournamentData.show_division ? '<th id="overall_div"><span class="pageLink">Div</span></th>' : '',
@@ -561,15 +610,45 @@ function showOverallResults(data) {
     events.forEach(function(event) {
 	    html += '<th id="overall_' + event + '"><span class="pageLink">' + capitalizeEvent(event) + '</span></th>';
 	});
-    html += '<th id="overall_total"><span class="pageLink">Total</span></th></tr>';
+    if (events.length > 0) {
+	html += '<th id="overall_total"><span class="pageLink">Total</span></th></tr>';
+    }
     html += '</table>';
 
-    // ship it!
     $('#content').append(html);
-    displayOverallResults();
+}
 
-    // add sort handlers
-    $('#overallResultsTable th span').click(sortResults);
+function showOverallPlaces(data) {
+
+    var event = window.curEvent = 'overall',
+	overallResults = data.filter(result => result.event_id === window.eventData[event].id),
+	resultInfo = getSortedResults(overallResults, event);
+
+    createOverallHeader([]);
+
+    var table = $('#overallResultsTable').get(0);
+
+    // create a result row for each overall player
+    resultInfo.playerIds.forEach(function(playerId, index) {
+
+	    if (window.playerPageId && window.playerPageId !== playerId) {
+		return;
+	    }
+	    
+	    var html = '',
+		name = window.playerData[playerId].name,
+		row = table.rows[index + 1] || table.insertRow();
+
+	    html += '<td>' + resultInfo.scoreData[playerId].rank + '</td>';
+	    if (!window.playerPageId) {
+		html += '<td>' + name + '</td>';
+	    }
+	    if (window.tournamentData.show_division) {
+		html += !window.playerPageId ? '<td>' + window.playerData[playerId].division + '</td>' : '';
+	    }
+
+	    row.innerHTML = html;
+	});
 }
 
 /**
@@ -707,6 +786,7 @@ function getSortedResults(data, event) {
     // figure out how many rounds we have results for, and get a list of player IDs that have results
     var numRounds = Math.max.apply(Math, data.map(result => result.round)),
 	division = getDivision(),
+	isRankScoring = window.eventData && window.eventData[event] && window.eventData[event].rank_scoring === '1',
 	numRounds = getRoundsByDivision(event, division),
 	numCumulative = getRoundsByDivision(event, division, true),
 	playerIds = uniquify(data.map(result => result.player_id)),
@@ -722,21 +802,16 @@ function getSortedResults(data, event) {
 	    scoreData[p] = scoreData[p] || {};
 	    scoreData[p][round] = score;
 	    scoreData[p].numRounds = scoreData[p].numRounds || 0;
-	    scoreData[p].numRounds++;
 
 	    if (score > -2) {
+		scoreData[p].numRounds++;
 		scoreData[p].latest = Math.max(scoreData[p].latest || 0, round, numCumulative < numRounds ? numCumulative : -1);
 	    }
 
-	    //let adjScore = score < 0 ? (LOWER_IS_BETTER[event] ? score * -1000 : score * 1000) : score;
 	    let adjScore = score;
+	    const lowerIsBetter = LOWER_IS_BETTER[event] || isRankScoring;
 	    if (score < 0) {
-		if (round <= numCumulative && !LOWER_IS_BETTER[event]) {
-		    adjScore = 0;
-		}
-		else {
-		    adjScore = LOWER_IS_BETTER[event] ? score * -1000 : score * 1000;
-		}
+		adjScore = lowerIsBetter ? score * -1000 : score * 1000;
 	    }
 
 	    if (round <= numCumulative) {
@@ -796,7 +871,7 @@ function getSortedResults(data, event) {
  * @param {object} resultInfo       helpful result info
  * @param {string} event            event name
  */
-function getOverallPoints(resultInfo, event, numOverallPlayers) {
+function getOverallPoints(resultInfo, event, numOverallPlayers, countdownBase, noPlayNoPoints) {
 
     var ranks = {},
 	points = {},
@@ -815,7 +890,9 @@ function getOverallPoints(resultInfo, event, numOverallPlayers) {
 	numPlayers = resultInfo.playerIds.length,
 	fullTeamBonus = 0;
 
-    if (scoringMethod === 'countdown') {
+    if (countdownBase) {
+	base = countdownBase;
+    } else if (scoringMethod === 'countdown') {
         base = getCountdownBaseByDivision(getDivision());
     }
     else if (scoringMethod === 'countup') {
@@ -852,7 +929,11 @@ function getOverallPoints(resultInfo, event, numOverallPlayers) {
 		overallPoints[playerId] = numOverallPlayers + 1;
 	    }
 	    else {
-		overallPoints[playerId] = Math.max(points[resultInfo.scoreData[playerId].rank], 0);
+		const score = resultInfo.scoreData[playerId];
+		overallPoints[playerId] = Math.max(points[score.rank], 0);
+		if (noPlayNoPoints && score[score.latest] < 0) {
+		    overallPoints[playerId] = score[score.latest];
+		}
 	    }
 	});
 
@@ -945,10 +1026,23 @@ function sortResults(e) {
 function showScf() {
 
     var division = getDivision(),
-	mtaRequest = sendRequest('get-results', { event: 'mta', eventId: window.eventData.mta.id, sort: 'round' }),
-	trcRequest = sendRequest('get-results', { event: 'trc', eventId: window.eventData.trc.id, sort: 'round' }),
-	requests = [ mtaRequest, trcRequest ],
+	isRankScoring = window.eventData.scf.rank_scoring === '1',
+	requests,
+	callbacks;
+
+    if (isRankScoring) {
+	const scfRequest = sendRequest('get-results', { event: 'scf', eventId: window.eventData.scf.id, sort: 'score' });
+	requests = [ scfRequest ];
+	callbacks = [ handleScfResults.bind(null, 'scf') ];
+    }
+    else {
+	var mtaRequest = sendRequest('get-results', { event: 'mta', eventId: window.eventData.mta.id, sort: 'round' }),
+	    trcRequest = sendRequest('get-results', { event: 'trc', eventId: window.eventData.trc.id, sort: 'round' });
+
+	requests = [ mtaRequest, trcRequest ];
 	callbacks = [ handleScfResults.bind(null, 'mta'), handleScfResults.bind(null, 'trc') ];
+    }
+
 	
     sendRequests(requests, callbacks).then(showScfResults);
 }
@@ -971,7 +1065,8 @@ function handleScfResults(event, data) {
  */
 function showScfResults() {
 
-    var scfData = getScfData();
+    var isRankScoring = window.eventData.scf.rank_scoring === '1';
+    var scfData = isRankScoring ? window.scfData.scf : getScfData();
 
     window.curEvent = 'scf';
     gotResults('scf', scfData);
@@ -1032,7 +1127,7 @@ function getScfData() {
 function goToPlayerPage(e) {
 
     var id = $(this).closest('[data-id]').data('id');
-    window.location = "player.html?id=" + id;
+    window.location = "player.html?id=" + id + (window.qs.test ? '&test' : '');
 }
 
 function hasMixedTeam(event, division) {
@@ -1176,7 +1271,6 @@ function gotPlayerResults(data) {
 		html = '<div class="eventTitle" id="player-' + event + '"><a href="' + eventLink + '">' + capitalizeEvent(event) + extra + '</a></div>';
 	    $('#content').append(html);
 
-	    // pass data to the display function so it doesn't get fetched again
-  	    showPage(event, eventData);
+  	    showPage(event);
         });
 }

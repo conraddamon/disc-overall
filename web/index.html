@@ -4,7 +4,7 @@
 # Author: Conrad Damon
 # Date: 02/15/2017
 #
-# User home page.
+# Show a list of tournaments known to HARV.
 #-----------------------------------------------------------------------------#
 
 require_once('db.php');
@@ -12,28 +12,23 @@ require_once('log.php');
 require_once('util.php');
 require_once('overall.php');
 
-$test = get_input('test', 'get');
-
 $title = "Welcome to HARV 3000";
 $harv = getHarv();
 
 $sql = "SELECT * FROM tournament ORDER BY start DESC";
 $tournamentResults = db_query($sql);
 
+$extra = propagate_params();
+
+$test = get_input('test', 'get');
 $tournamentHtml = '';
-$testTournamentHtml = '';
 foreach ($tournamentResults as $tournament) {
    if (strlen($tournament['name']) > 0) {
-     $html = "<li class='tournamentLink'><a href='tournament.html?id=" . $tournament['id'] . "'>" . getTournamentTitle($tournament) . "</a></li>";
-     if (!$tournament['test']) {
-        $tournamentHtml .= $html;
-     }
-     else {
-        $testTournamentHtml .= $html;
-     }
+     $tournamentHtml .= "<li class='tournamentLink'><a href='tournament.html?id=" . $tournament['id'] . "$extra'>" . getTournamentTitle($tournament) . "</a></li>";
    }
 }
 
+$extra = propagate_params(true);
 echo <<< EOF
 <!doctype html>
 <html>
@@ -47,23 +42,13 @@ echo <<< EOF
   <div class="title">$title</div>
 $harv
   <div class="pageLinks">
-    [ <span class="pageLink"><a href="admin/index.html">Admin Page</a></span> ]
-<!--    [ <span class="pageLink"><a href="index.html?test=1">Include Test</a></span> ] -->
+    [ <span class="pageLink"><a href="admin/index.html$extra">Admin Page</a></span> ]
   </div>
   <div class="header subtitle">Tournaments</div>
   <ul>
     $tournamentHtml
   </ul>
 EOF;
-
-if ($test) {
-echo <<< EOF
-  <div class="header subtitle">Testing</div>
-  <ul>
-    $testTournamentHtml
-  </ul>
-EOF;
-}
 
 echo <<< EOF
 </body>

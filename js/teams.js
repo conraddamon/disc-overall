@@ -54,7 +54,12 @@ function initializeTeams(tournamentId, ddcEventId, freestyleEventId, freestyleTe
 function handleTournamentInfo(data) {
 
     window.tournamentData = data;
-    populateDivisionSelect(data.divisions.split(',').filter(div => div === 'O' || div === 'W').join(','));
+    // if we have Open and Women, just use those
+    let divisions = data.divisions.split(',').filter(div => div === 'O' || div === 'W');
+    if (divisions.length < 2) {
+	divisions = data.divisions.split(',');
+    }
+    populateDivisionSelect(divisions.join(','));
 }
 
 /**
@@ -155,6 +160,15 @@ function showPlayersAndTeams(event, players, teams) {
 	    return !playerTeamed[player.id];
 	});
 
+    // add dummy player for partnerless players
+    const dummy = {
+	division: getDivision(),
+	id: DUMMY_PLAYER_ID,
+	name: DUMMY_PLAYER_NAME,
+	tournament_id: window.tournamentId,
+    };
+    unteamedPlayerList.push(dummy);
+
     // header for team section
     var eventName = capitalizeEvent(event);
     $('#teamHeader').text(eventName + " Teams");
@@ -225,9 +239,10 @@ function highlightIncompleteTeams(event) {
 function handlePlayerDrop(event, e, ui) {
 
     var source = $(ui.draggable).closest('td'),
-        sourceId = source.data('id');
+        sourceId = source.data('id'),
+	sourceIsDummy = sourceId == DUMMY_PLAYER_ID;
 
-    if (!window.playerData[sourceId]) {
+    if (!window.playerData[sourceId] && !sourceIsDummy) {
 	return;
     }
 
@@ -235,11 +250,14 @@ function handlePlayerDrop(event, e, ui) {
 	target = $(e.target).closest('td'),
 	targetElId = $(target).prop('id'),
 	targetId = $(target).data('id'),
+	targetIsDummy = targetId == DUMMY_PLAYER_ID,
 	isTeamTarget = targetElId.indexOf('team') === 0;
 
     // remove both players from list of unteamed players
-    source.html('');
-    if (!isTeamTarget) {
+    if (!sourceIsDummy) {
+	source.html('');
+    }
+    if (!isTeamTarget && !targetIsDummy) {
 	target.html('');
     }
 
